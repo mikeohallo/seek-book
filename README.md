@@ -1,6 +1,6 @@
 # Seek and Find
 
-A seek-and-find game for a small child, starring her own family. Every busy picture hides the girl, Dad, Mum, Grandma, the uncle, the grandparents, her ballet shoes, her favourite toy Teddy and the unicorn from her Monster Book. Tap everyone you can find.
+A seek-and-find game for a small child, starring her own family. Every busy picture hides the girl, Dad, Mum, Grandma, the uncle, the grandparents, her ballet shoes, her favourite toy the doll and the unicorn from her Monster Book. Tap everyone you can find.
 
 **Try it:** [seek.mikeohalloran.au](https://seek.mikeohalloran.au/), or start at [the playroom](https://play.mikeohalloran.au/), which has this and the Monster Book side by side.
 
