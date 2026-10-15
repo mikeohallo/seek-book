@@ -1,0 +1,671 @@
+<title>My Seek and Find</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Find the family hidden in every busy picture from the seek-and-find book.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: the book's cream page. Home is a column of picture cards; a page you're playing fills the
+   screen: a slim bar, the picture (pinch, drag, tap), and the row of faces to find along the bottom.
+   One look in every theme, like the printed book and the monster site. */
+:root {
+  --paper: #FFF8EC;
+  --paper-deep: #F3E6CF;
+  --card: #FFFFFF;
+  --ink: #3A2852;
+  --ink-soft: #6E5C86;
+  --line: #E4D9EC;
+  --pink: #EC6AA8;
+  --purple: #A880D6;
+  --blue: #54A6E2;
+  --green: #68B242;
+  --yellow: #F2C828;
+  --orange: #F4882C;
+  --font-display: 'Fredoka', 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 18px;
+  --shadow: 0 2px 0 rgba(58, 40, 82, .08), 0 10px 24px rgba(58, 40, 82, .10);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; background: var(--paper); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 17px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+/* ---------- title (rainbow letters, as on the book's cover) ---------- */
+.title { margin: 0; font-family: var(--font-display); font-weight: 700; line-height: 1.05; text-align: center; text-wrap: balance; letter-spacing: .5px; }
+.title .w { display: inline-block; white-space: nowrap; }
+.title .l { display: inline-block; -webkit-text-stroke: .14em var(--ink); paint-order: stroke fill; text-shadow: 0 .06em 0 rgba(58, 40, 82, .18); }
+.title .l:nth-child(odd) { transform: rotate(-3deg); }
+.title .l:nth-child(even) { transform: rotate(3deg); }
+
+/* ---------- home ---------- */
+.home {
+  min-height: 100%; max-width: 980px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 22px 40px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.home .title { font-size: clamp(34px, 9vw, 58px); }
+.lede { margin: -6px auto 0; max-width: 34ch; text-align: center; color: var(--ink-soft); font-weight: 800; font-size: 18px; text-wrap: balance; }
+.who { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 12px 8px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 12px; }
+.who figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.who img { width: 64px; height: 64px; }
+.who figcaption { font-weight: 800; font-size: 14px; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+.h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; }
+.pages { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 440px)); justify-content: center; gap: 18px; }
+.page-card {
+  border: 0; padding: 0; text-align: left; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.page-card .pic { position: relative; aspect-ratio: 640 / 379; max-width: 100%; background: var(--paper-deep); }
+.page-card .pic img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.page-card .star {
+  position: absolute; right: 10px; top: 10px; width: 46px; height: 46px; border-radius: 50%;
+  background: var(--yellow); border: 3px solid var(--ink); display: grid; place-items: center;
+  box-shadow: 0 3px 0 rgba(58, 40, 82, .25);
+}
+.page-card .star svg { width: 26px; height: 26px; fill: #fff; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.page-card .meta { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+.page-card .name { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.1; }
+.dots { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: var(--card); }
+.dots i.on { border-color: var(--ink); }
+.dots b { margin-left: 6px; font-size: 15px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.again { align-self: center; border: 0; background: none; font-weight: 800; font-size: 15px; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; padding: 6px; }
+.foot { margin: 6px 0 0; text-align: center; color: var(--ink-soft); font-weight: 700; font-size: 14px; }
+
+/* ---------- play ---------- */
+.play { height: 100%; display: flex; flex-direction: column; }
+.bar {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-block: 8px;
+}
+.icon-btn {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); background: var(--card);
+  display: grid; place-items: center; box-shadow: 0 1px 3px rgba(58, 40, 82, .12);
+}
+.icon-btn svg { width: 22px; height: 22px; stroke: var(--ink); stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:active { scale: .94; }
+.bar .title { flex: 1; min-width: 0; font-size: clamp(20px, 5.4vw, 30px); text-align: left; }
+.bar .title .l { -webkit-text-stroke-width: .12em; }
+.count {
+  flex: none; font-family: var(--font-display); font-weight: 700; font-size: 18px; padding: 6px 12px; border-radius: 999px;
+  background: var(--card); border: 2px solid var(--line); font-variant-numeric: tabular-nums;
+}
+.stage-wrap { flex: 1; min-height: 0; position: relative; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+.stage {
+  position: absolute; inset: 0 max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+  overflow: hidden; border-radius: 16px; background: var(--paper-deep);
+  touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
+  box-shadow: inset 0 0 0 2px rgba(58, 40, 82, .08);
+}
+.stage.dragging { cursor: grabbing; }
+.layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.layer img { display: block; max-width: none; -webkit-user-drag: none; pointer-events: none; }
+.layer svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.ring { fill: none; transform-box: fill-box; transform-origin: center; animation: ring-in .55s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes ring-in { from { transform: scale(1.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.glow { transform-box: fill-box; transform-origin: center; animation: glow 3.2s ease-in-out both; }
+@keyframes glow { 0% { opacity: 0; transform: scale(.7); } 20%, 70% { opacity: 1; transform: scale(1); } 45% { transform: scale(1.08); } 100% { opacity: 0; transform: scale(1); } }
+.miss {
+  position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+  border: 3px dashed rgba(58, 40, 82, .55); pointer-events: none; animation: wobble .6s ease-out forwards;
+}
+@keyframes wobble {
+  0% { transform: scale(.6) rotate(0); opacity: 1; } 30% { transform: scale(1) rotate(-14deg); }
+  55% { transform: scale(1) rotate(12deg); } 80% { transform: scale(1) rotate(-6deg); opacity: .8; } 100% { transform: scale(.9) rotate(0); opacity: 0; }
+}
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 2; }
+.zoom .icon-btn { width: 42px; height: 42px; background: rgba(255, 255, 255, .92); }
+.say {
+  position: absolute; left: 50%; top: 12px; translate: -50% 0; z-index: 3; pointer-events: none;
+  background: var(--ink); color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 20px;
+  padding: 8px 18px; border-radius: 999px; box-shadow: var(--shadow); white-space: nowrap; max-width: calc(100% - 24px);
+  overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .2s;
+}
+.say.show { opacity: 1; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-soft); font-weight: 800; }
+
+.strip {
+  flex: none; display: grid; grid-template-columns: repeat(var(--n, 9), minmax(0, 1fr)); gap: 4px;
+  padding-left: max(8px, env(safe-area-inset-left, 0px));
+  padding-right: max(8px, env(safe-area-inset-right, 0px));
+  padding-block: 8px 10px; max-width: 980px; width: 100%; margin: 0 auto;
+}
+.face {
+  position: relative; border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 0; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+}
+.face img { width: 100%; max-width: 72px; aspect-ratio: 1; display: block; -webkit-user-drag: none; pointer-events: none; transition: filter .3s; }
+.face span { display: none; font-weight: 800; font-size: 13px; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.face .tick {
+  position: absolute; right: max(0px, calc(50% - 38px)); top: -2px; width: 44%; max-width: 30px; aspect-ratio: 1; border-radius: 50%;
+  background: var(--fc, var(--green)); border: 2.5px solid var(--ink); display: grid; place-items: center; scale: 0;
+  transition: scale .35s cubic-bezier(.2, 1.6, .4, 1);
+}
+.face .tick svg { width: 62%; height: 62%; stroke: #fff; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.face.done .tick { scale: 1; }
+.face.done img { filter: saturate(.55) opacity(.72); }
+.face.bump img { animation: bump .45s ease-out; }
+@keyframes bump { 40% { transform: scale(1.18) rotate(-6deg); } 70% { transform: scale(.96) rotate(3deg); } }
+.face.holding img { animation: hold .6s linear forwards; }
+@keyframes hold { to { transform: scale(1.12); filter: drop-shadow(0 0 6px var(--yellow)); } }
+@media (min-width: 760px) { .face span { display: block; } }
+
+/* ---------- finale ---------- */
+.finale {
+  position: fixed; inset: 0; z-index: 10; background: rgba(58, 40, 82, .45); display: grid; place-items: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+}
+.finale .box {
+  width: 100%; max-width: 460px; background: var(--paper); border-radius: 24px; box-shadow: var(--shadow);
+  padding: 22px 18px; display: flex; flex-direction: column; gap: 16px; align-items: stretch; text-align: center;
+  animation: pop-in .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes pop-in { from { transform: scale(.8); opacity: 0; } }
+.finale .title { font-size: clamp(30px, 8vw, 42px); }
+.finale .faces { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.finale .faces img { width: 44px; height: 44px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 10px 18px; border-radius: 14px;
+  font-family: var(--font-display); font-weight: 600; font-size: 19px; border: 2px solid var(--ink); background: var(--card); color: var(--ink);
+}
+.btn.primary { background: var(--ink); color: #fff; font-size: 21px; min-height: 58px; }
+.btn:active { translate: 0 1px; }
+.btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
+.error { margin: 40px auto; max-width: 30ch; text-align: center; font-weight: 800; color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) {
+  .ring, .glow, .miss, .face.bump img, .finale .box { animation-duration: .01s; }
+  .say, .face .tick, .face img { transition: none; }
+}
+</style>
+
+<main class="home" id="home" aria-label="Pages">
+  <h1 class="title" id="homeTitle"></h1>
+  <p class="lede">Tap everyone you can find. Stuck? Press and hold a face for a clue.</p>
+  <section class="pages" id="pages" aria-label="Pages to play"></section>
+  <section aria-labelledby="whoHead" style="display:flex;flex-direction:column;gap:10px">
+    <h2 class="h2" id="whoHead">Who's hiding on every page</h2>
+    <div class="who" id="who"></div>
+  </section>
+  <p class="foot">The same pictures as the printed book. Nothing you do here leaves this device.</p>
+</main>
+
+<section class="play" id="play" hidden aria-label="Find everyone">
+  <header class="bar">
+    <button class="icon-btn" id="back" aria-label="All pages"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h1 class="title" id="playTitle"></h1>
+    <span class="count" id="count" aria-live="polite">0/9</span>
+    <button class="icon-btn" id="sound" aria-label="Sound on" aria-pressed="true"></button>
+  </header>
+  <div class="stage-wrap">
+    <div class="stage" id="stage" role="img" aria-label="">
+      <div class="layer" id="layer">
+        <img id="scene" alt="" draggable="false">
+        <svg id="marks" aria-hidden="true"><defs id="defs"></defs></svg>
+      </div>
+      <p class="loading" id="loading">Opening the page…</p>
+      <div class="say" id="say" role="status" aria-live="polite"></div>
+      <div class="zoom">
+        <button class="icon-btn" id="zin" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="icon-btn" id="zout" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button class="icon-btn" id="zfit" aria-label="Show the whole page"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <nav class="strip" id="strip" aria-label="Who to find"></nav>
+</section>
+
+<div class="finale" id="finale" hidden role="dialog" aria-modal="true" aria-labelledby="finTitle">
+  <div class="box">
+    <h2 class="title" id="finTitle"></h2>
+    <div class="faces" id="finFaces"></div>
+    <button class="btn primary" id="finNext">Next page <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button class="btn" id="finAgain">Play this page again</button>
+    <button class="btn" id="finHome">All pages</button>
+  </div>
+</div>
+
+<canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+
+<script>
+// ---------------------------------------------------------------- setup ----
+const DEFAULT_OWNER = 'the girl';      // gift copies: link with ?for=Name, or change this
+const COLOURS = ['#EC6AA8', '#F4882C', '#F2C828', '#68B242', '#54A6E2', '#A880D6'];
+const $ = id => document.getElementById(id);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let DATA = null;
+
+// ------------------------------------------------------------- storage ----
+const KEY = 'seek-book.v1';
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, sound: d.sound !== false, owner: d.owner || null }; }
+  catch (e) { return { found: {}, sound: true, owner: null }; }
+}
+const store = load();
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+try {
+  const f = new URLSearchParams(location.search).get('for');
+  if (f && !store.owner) { store.owner = f.trim().slice(0, 20); persist(); }
+} catch (e) {}
+function ownerName() {
+  let f = null; try { f = new URLSearchParams(location.search).get('for'); } catch (e) {}
+  return (f || store.owner || DEFAULT_OWNER || '').trim().slice(0, 20);
+}
+const foundIn = n => new Set(store.found[n] || []);
+
+// --------------------------------------------------------------- title ----
+function rainbow(el, text, start = 0) {
+  el.textContent = ''; el.setAttribute('aria-label', text);
+  let k = start;
+  text.split(' ').forEach((word, i) => {
+    if (i) el.append(' ');
+    const w = document.createElement('span'); w.className = 'w'; w.setAttribute('aria-hidden', 'true');
+    for (const ch of word) {
+      const s = document.createElement('span'); s.className = 'l'; s.textContent = ch;
+      s.style.color = COLOURS[k++ % COLOURS.length]; w.append(s);
+    }
+    el.append(w);
+  });
+}
+const bookName = () => `${ownerName() ? ownerName() + "'s" : 'My'} Seek and Find`;
+
+// --------------------------------------------------------------- sound ----
+let actx = null;
+function audio() {
+  if (!store.sound) return null;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { actx = null; }
+  return actx;
+}
+function notes(freqs, gap = .085, len = .32, vol = .16) {
+  const a = audio(); if (!a) return;
+  const t0 = a.currentTime + .02;
+  freqs.forEach((f, i) => {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'triangle'; o.frequency.value = f;
+    const t = t0 + i * gap;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .015); g.gain.exponentialRampToValueAtTime(.0008, t + len);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + len + .02);
+  });
+}
+const chime = () => notes([659.25, 830.61, 987.77, 1318.5]);
+const fanfare = () => notes([523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5], .11, .5, .14);
+function drawSound() {
+  const b = $('sound');
+  b.setAttribute('aria-pressed', String(store.sound)); b.setAttribute('aria-label', store.sound ? 'Sound on' : 'Sound off');
+  b.innerHTML = store.sound
+    ? '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM17 9l5 6M22 9l-5 6"/></svg>';
+}
+
+// ------------------------------------------------------------ confetti ----
+const cv = $('confetti'), cx = cv.getContext('2d');
+let parts = [], raf = 0;
+function burst(x, y, n = 36, spread = 1) {
+  if (reduced) return;
+  const dpr = devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = (3 + Math.random() * 6) * spread;
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4 * spread, r: 4 + Math.random() * 5, c: COLOURS[i % 6],
+                 life: 1, spin: Math.random() * 6, star: Math.random() < .3 });
+  }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function tick() {
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  parts = parts.filter(p => p.life > 0);
+  for (const p of parts) {
+    p.x += p.vx; p.y += p.vy; p.vy += .32; p.vx *= .985; p.life -= .014; p.spin += .2;
+    cx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.6)); cx.fillStyle = p.c;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.spin);
+    if (p.star) { cx.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? p.r * .45 : p.r * 1.3, t = i * Math.PI / 5; cx.lineTo(Math.cos(t) * r, Math.sin(t) * r); } cx.fill(); }
+    else cx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+    cx.restore();
+  }
+  cx.globalAlpha = 1;
+  raf = parts.length ? requestAnimationFrame(tick) : 0;
+  if (!raf) cx.clearRect(0, 0, innerWidth, innerHeight);
+}
+
+// ---------------------------------------------------------------- home ----
+const STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/></svg>';
+let againArmed = null;
+function renderHome() {
+  rainbow($('homeTitle'), bookName());
+  document.title = bookName();
+  const box = $('pages'); box.textContent = '';
+  for (const sp of DATA.spreads) {
+    const got = foundIn(sp.n), total = sp.finds.length, done = got.size >= total;
+    const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '4px';
+    const b = document.createElement('button'); b.className = 'page-card';
+    b.setAttribute('aria-label', `${sp.title}: ${got.size} of ${total} found${done ? ', all done' : ''}`);
+    const dots = sp.finds.map(f => {
+      const fd = DATA.byId[f.id];
+      return `<i class="${got.has(f.id) ? 'on' : ''}" style="${got.has(f.id) ? 'background:' + fd.colour : ''}"></i>`;
+    }).join('');
+    b.innerHTML = `<div class="pic"><img alt="" src="${sp.thumb}" loading="lazy">${done ? `<span class="star">${STAR}</span>` : ''}</div>
+      <div class="meta"><span class="name"></span><span class="dots">${dots}<b>${got.size} of ${total}</b></span></div>`;
+    b.querySelector('.name').textContent = sp.title;
+    b.addEventListener('click', () => openPage(sp.n));
+    wrap.append(b);
+    if (got.size) {
+      const a = document.createElement('button'); a.className = 'again'; a.textContent = 'Start this page again';
+      a.addEventListener('click', () => {
+        if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = 'Tap again to clear it'; setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
+        againArmed = null; delete store.found[sp.n]; persist(); renderHome();
+      });
+      wrap.append(a);
+    }
+    box.append(wrap);
+  }
+  const who = $('who'); who.textContent = '';
+  for (const fd of DATA.finds) {
+    const f = document.createElement('figure');
+    f.innerHTML = `<img alt="" src="${fd.portrait}"><figcaption></figcaption>`;
+    f.querySelector('figcaption').textContent = fd.label;
+    who.append(f);
+  }
+}
+
+// ---------------------------------------------------------------- play ----
+let page = null;                 // the spread being played
+const view = { s: 1, tx: 0, ty: 0, W: 1, H: 1 };
+const stage = $('stage'), layer = $('layer'), img = $('scene'), marks = $('marks');
+function stageSize() { return { w: stage.clientWidth, h: stage.clientHeight }; }
+function fits() {
+  const { w, h } = stageSize();
+  return { contain: Math.min(w / view.W, h / view.H), cover: Math.max(w / view.W, h / view.H) };
+}
+const minS = () => fits().contain;
+const maxS = () => Math.max(1, fits().cover * 1.5);
+function clampView() {
+  const { w, h } = stageSize();
+  view.s = Math.min(maxS(), Math.max(minS(), view.s));
+  const sw = view.W * view.s, sh = view.H * view.s;
+  view.tx = sw <= w ? (w - sw) / 2 : Math.min(0, Math.max(w - sw, view.tx));
+  view.ty = sh <= h ? (h - sh) / 2 : Math.min(0, Math.max(h - sh, view.ty));
+}
+function apply() { clampView(); layer.style.transform = `translate(${view.tx}px, ${view.ty}px) scale(${view.s})`; }
+function zoomAt(px, py, s2) {
+  const ix = (px - view.tx) / view.s, iy = (py - view.ty) / view.s;
+  view.s = Math.min(maxS(), Math.max(minS(), s2));
+  view.tx = px - ix * view.s; view.ty = py - iy * view.s; apply();
+}
+function startView() {
+  const { w, h } = stageSize(), f = fits();
+  // a phone held upright: fill the height and pan sideways; a wide screen: show the whole page
+  view.s = (w / h < view.W / view.H) ? f.cover : f.contain;
+  view.tx = (w - view.W * view.s) / 2; view.ty = (h - view.H * view.s) / 2; apply();
+}
+let anim = 0;
+function animateTo(s2, tx2, ty2, dur = 320) {
+  cancelAnimationFrame(anim);
+  if (reduced) { view.s = s2; view.tx = tx2; view.ty = ty2; apply(); return; }
+  const a = { ...view }, t0 = performance.now();
+  const step = t => {
+    const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    view.s = a.s + (s2 - a.s) * e; view.tx = a.tx + (tx2 - a.tx) * e; view.ty = a.ty + (ty2 - a.ty) * e; apply();
+    if (k < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+function zoomButton(f) {
+  const { w, h } = stageSize();
+  const ix = (w / 2 - view.tx) / view.s, iy = (h / 2 - view.ty) / view.s;
+  const s2 = Math.min(maxS(), Math.max(minS(), view.s * f));
+  animateTo(s2, w / 2 - ix * s2, h / 2 - iy * s2);
+}
+
+// pointer handling: one finger drags, two fingers pinch, a quick still touch is a tap
+const ptrs = new Map();
+let drag = null, pinch = null, tapOK = false, downAt = 0;
+function local(e) { const r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+stage.addEventListener('pointerdown', e => {
+  if (e.target.closest('.zoom')) return;
+  audio();                                       // sound may only start from a touch or click
+  stage.setPointerCapture?.(e.pointerId);
+  ptrs.set(e.pointerId, local(e));
+  cancelAnimationFrame(anim);
+  if (ptrs.size === 1) {
+    const p = local(e); drag = { x: p.x, y: p.y, tx: view.tx, ty: view.ty }; tapOK = true; downAt = performance.now();
+  } else if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: view.s, ix: (mid.x - view.tx) / view.s, iy: (mid.y - view.ty) / view.s };
+    tapOK = false; drag = null;
+  }
+});
+stage.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, local(e));
+  if (pinch && ptrs.size >= 2) {
+    const [a, b] = [...ptrs.values()];
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    view.s = Math.min(maxS(), Math.max(minS(), pinch.s * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d));
+    view.tx = mid.x - pinch.ix * view.s; view.ty = mid.y - pinch.iy * view.s; apply();
+  } else if (drag) {
+    const p = ptrs.get(e.pointerId);
+    const dx = p.x - drag.x, dy = p.y - drag.y;
+    if (Math.hypot(dx, dy) > 9) { tapOK = false; stage.classList.add('dragging'); }
+    if (!tapOK) { view.tx = drag.tx + dx; view.ty = drag.ty + dy; apply(); }
+  }
+});
+function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  const p = local(e);
+  ptrs.delete(e.pointerId);
+  if (ptrs.size === 1) {                         // a pinch became a drag: carry on from here
+    const q = [...ptrs.values()][0]; drag = { x: q.x, y: q.y, tx: view.tx, ty: view.ty }; pinch = null; tapOK = false; return;
+  }
+  if (ptrs.size === 0) {
+    stage.classList.remove('dragging');
+    if (tapOK && e.type === 'pointerup' && performance.now() - downAt < 700) tap(p.x, p.y);
+    drag = null; pinch = null; tapOK = false;
+  }
+}
+stage.addEventListener('pointerup', endPtr);
+stage.addEventListener('pointercancel', endPtr);
+stage.addEventListener('wheel', e => {
+  e.preventDefault(); const p = local(e);
+  zoomAt(p.x, p.y, view.s * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0018)));
+}, { passive: false });
+addEventListener('resize', () => { if (!$('play').hidden && img.complete) apply(); });
+
+// finding things
+function padded(f) {
+  // the find's box grown by 40%, and never smaller than a fingertip (46 px on screen)
+  const [x0, y0, x1, y1] = f.box;
+  const cx = (x0 + x1) / 2 * view.W, cy = (y0 + y1) / 2 * view.H;
+  const minHalf = 23 / view.s;
+  const hw = Math.max((x1 - x0) * view.W * .7, minHalf), hh = Math.max((y1 - y0) * view.H * .7, minHalf);
+  return { cx, cy, hw, hh };
+}
+function tap(px, py) {
+  if (!page) return;
+  const ix = (px - view.tx) / view.s, iy = (py - view.ty) / view.s;
+  const got = foundIn(page.n);
+  let best = null, bestD = Infinity;
+  for (const f of page.finds) {
+    const b = padded(f);
+    if (Math.abs(ix - b.cx) <= b.hw && Math.abs(iy - b.cy) <= b.hh) {
+      const d = Math.hypot((ix - b.cx) / b.hw, (iy - b.cy) / b.hh) + (got.has(f.id) ? 2 : 0);   // prefer one still hiding
+      if (d < bestD) { bestD = d; best = f; }
+    }
+  }
+  if (!best) { miss(px, py); return; }
+  if (got.has(best.id)) { say(`You already found ${DATA.byId[best.id].say}!`); bumpFace(best.id); return; }
+  found(best, px, py);
+}
+function miss(px, py) {
+  const m = document.createElement('div'); m.className = 'miss';
+  m.style.left = px + 'px'; m.style.top = py + 'px';
+  stage.append(m); setTimeout(() => m.remove(), 700);
+}
+function found(f, px, py) {
+  const list = store.found[page.n] || (store.found[page.n] = []);
+  list.push(f.id); persist();
+  drawRing(f, true);
+  const r = stage.getBoundingClientRect();
+  burst(r.left + px, r.top + py);
+  chime();
+  say(`You found ${DATA.byId[f.id].say}!`);
+  updateStrip(f.id);
+  if (list.length >= page.finds.length) setTimeout(finale, 1100);
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function drawRing(f, fresh) {
+  const fd = DATA.byId[f.id];
+  const [x0, y0, x1, y1] = f.box;
+  const cx = (x0 + x1) / 2 * view.W, cy = (y0 + y1) / 2 * view.H;
+  const rx = (x1 - x0) * view.W * .5 + view.W * .008, ry = (y1 - y0) * view.H * .5 + view.W * .008;
+  const g = document.createElementNS(SVGNS, 'g'); g.dataset.id = f.id;
+  const mk = (w, c) => { const e = document.createElementNS(SVGNS, 'ellipse');
+    Object.entries({ cx, cy, rx, ry, stroke: c, 'stroke-width': w, 'vector-effect': 'non-scaling-stroke', class: 'ring' }).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
+  g.append(mk(9, '#3A2852'), mk(5.5, fd.colour));
+  if (!fresh) g.querySelectorAll('.ring').forEach(e => e.style.animation = 'none');
+  marks.append(g);
+}
+let sayTimer;
+function say(text) {
+  const s = $('say'); s.textContent = text; s.classList.add('show');
+  clearTimeout(sayTimer); sayTimer = setTimeout(() => s.classList.remove('show'), 2000);
+}
+function bumpFace(id) {
+  const b = $('strip').querySelector(`[data-id="${id}"]`); if (!b) return;
+  b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+}
+function updateStrip(justFound) {
+  const got = foundIn(page.n);
+  $('strip').querySelectorAll('.face').forEach(b => {
+    const done = got.has(b.dataset.id);
+    b.classList.toggle('done', done);
+    b.setAttribute('aria-label', `${DATA.byId[b.dataset.id].label}${done ? ', found' : ', still hiding. Press and hold for a clue'}`);
+  });
+  $('count').textContent = `${got.size}/${page.finds.length}`;
+  if (justFound) bumpFace(justFound);
+}
+
+// clues: press and hold a face, and a soft glow shows roughly where they are
+function hint(id) {
+  const f = page.finds.find(q => q.id === id); if (!f) return;
+  if (foundIn(page.n).has(id)) { say(`You found ${DATA.byId[id].say} already!`); return; }
+  const fd = DATA.byId[id];
+  const [x0, y0, x1, y1] = f.box;
+  const R = view.W * .11;
+  // the glow is off-centre, so it narrows the search without giving the answer away
+  const ang = Math.random() * Math.PI * 2, off = R * .45;
+  const gx = (x0 + x1) / 2 * view.W + Math.cos(ang) * off, gy = (y0 + y1) / 2 * view.H + Math.sin(ang) * off;
+  const gid = 'g' + Date.now();
+  const grad = document.createElementNS(SVGNS, 'radialGradient'); grad.id = gid;
+  grad.innerHTML = `<stop offset="0" stop-color="${fd.colour}" stop-opacity=".55"/><stop offset=".6" stop-color="${fd.colour}" stop-opacity=".25"/><stop offset="1" stop-color="${fd.colour}" stop-opacity="0"/>`;
+  $('defs').append(grad);
+  const c = document.createElementNS(SVGNS, 'circle');
+  Object.entries({ cx: gx, cy: gy, r: R, fill: `url(#${gid})`, class: 'glow' }).forEach(([k, v]) => c.setAttribute(k, v));
+  marks.prepend(c);
+  setTimeout(() => { c.remove(); grad.remove(); }, 3300);
+  // make sure the glow is on screen
+  const { w, h } = stageSize();
+  const sx = gx * view.s + view.tx, sy = gy * view.s + view.ty;
+  if (sx < R * view.s * .5 || sx > w - R * view.s * .5 || sy < 0 || sy > h) {
+    const s2 = Math.min(view.s, Math.max(minS(), Math.min(w, h) / (R * 3)));
+    animateTo(s2, w / 2 - gx * s2, h / 2 - gy * s2, 450);
+  }
+  say(`Look for ${DATA.byId[id].say} in the glow!`);
+}
+function buildStrip() {
+  const strip = $('strip'); strip.textContent = '';
+  strip.style.setProperty('--n', page.finds.length);
+  for (const f of page.finds) {
+    const fd = DATA.byId[f.id];
+    const b = document.createElement('button'); b.className = 'face'; b.dataset.id = f.id; b.style.setProperty('--fc', fd.colour);
+    b.innerHTML = `<img alt="" src="${fd.portrait}"><span></span><i class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>`;
+    b.querySelector('span').textContent = fd.label;
+    let timer = null, held = false;
+    const cancel = () => { clearTimeout(timer); timer = null; b.classList.remove('holding'); };
+    b.addEventListener('pointerdown', () => {
+      audio(); held = false; b.classList.add('holding');
+      timer = setTimeout(() => { held = true; b.classList.remove('holding'); hint(f.id); }, 600);
+    });
+    b.addEventListener('pointerup', cancel); b.addEventListener('pointerleave', cancel); b.addEventListener('pointercancel', cancel);
+    b.addEventListener('contextmenu', e => { e.preventDefault(); if (!held) { held = true; cancel(); hint(f.id); } });
+    b.addEventListener('click', () => {
+      if (held) { held = false; return; }
+      bumpFace(f.id);
+      say(foundIn(page.n).has(f.id) ? `You found ${fd.say}!` : `Can you find ${fd.say}?`);
+    });
+    b.addEventListener('keydown', e => { if (e.key === 'h' || e.key === 'H') hint(f.id); });
+    strip.append(b);
+  }
+}
+function openPage(n) {
+  page = DATA.spreads.find(s => s.n === n); if (!page) return;
+  $('home').hidden = true; $('play').hidden = false; $('finale').hidden = true;
+  rainbow($('playTitle'), page.title, n);
+  stage.setAttribute('aria-label', `${page.title}: a busy picture with ${page.finds.length} things to find`);
+  view.W = page.w; view.H = page.h;
+  img.style.width = page.w + 'px'; img.style.height = page.h + 'px';
+  marks.setAttribute('width', page.w); marks.setAttribute('height', page.h); marks.setAttribute('viewBox', `0 0 ${page.w} ${page.h}`);
+  marks.querySelectorAll('g, circle').forEach(e => e.remove());
+  buildStrip(); updateStrip();
+  $('loading').hidden = false; layer.style.visibility = 'hidden';
+  img.onload = () => {
+    $('loading').hidden = true; layer.style.visibility = '';
+    startView();
+    for (const f of page.finds) if (foundIn(n).has(f.id)) drawRing(f, false);
+  };
+  img.onerror = () => { $('loading').textContent = "This page didn't load. Check the internet and try again."; };
+  img.src = page.img;
+  try { history.replaceState(null, '', '#page' + n); } catch (e) {}
+}
+function finale() {
+  rainbow($('finTitle'), 'You found everyone!', 2);
+  const faces = $('finFaces'); faces.textContent = '';
+  for (const f of page.finds) { const i = document.createElement('img'); i.alt = ''; i.src = DATA.byId[f.id].portrait; faces.append(i); }
+  const next = DATA.spreads.find(s => s.n > page.n);
+  $('finNext').hidden = !next;
+  $('finale').hidden = false;
+  fanfare();
+  burst(innerWidth / 2, innerHeight * .4, 120, 1.6);
+  setTimeout(() => (next ? $('finNext') : $('finAgain')).focus(), 50);
+}
+function goHome() {
+  $('finale').hidden = true; $('play').hidden = true; $('home').hidden = false; page = null;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  renderHome();
+}
+
+// -------------------------------------------------------------- wiring ----
+$('back').addEventListener('click', goHome);
+$('finHome').addEventListener('click', goHome);
+$('finAgain').addEventListener('click', () => { const n = page.n; delete store.found[n]; persist(); openPage(n); });
+$('finNext').addEventListener('click', () => { const next = DATA.spreads.find(s => s.n > page.n); if (next) openPage(next.n); });
+$('sound').addEventListener('click', () => { store.sound = !store.sound; persist(); drawSound(); if (store.sound) chime(); });
+$('zin').addEventListener('click', () => zoomButton(1.6));
+$('zout').addEventListener('click', () => zoomButton(1 / 1.6));
+$('zfit').addEventListener('click', () => { const { w, h } = stageSize(), s = minS(); animateTo(s, (w - view.W * s) / 2, (h - view.H * s) / 2); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('play').hidden) goHome(); });
+drawSound();
+
+fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  DATA = d;
+  DATA.byId = Object.fromEntries(d.finds.map(f => [f.id, { ...f, say: f.say || f.label }]));
+  renderHome();
+  const m = /^#page(\d+)$/.exec(location.hash);
+  if (m && DATA.spreads.some(s => s.n === +m[1])) openPage(+m[1]);
+}).catch(() => {
+  $('pages').innerHTML = '<p class="error">The pages didn\'t load. Check the internet connection and try again.</p>';
+});
+</script>

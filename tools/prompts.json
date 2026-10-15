@@ -1,0 +1,70 @@
+{
+ "_notes": "Prompts for gen.py. refs are attached in order as Image 1, Image 2... Outputs are never overwritten: each run saves a new _vN file.",
+ "style_ref": "photos/style.jpg",
+ "tail": "Flat colour with no shading, no shadows on the ground, no sticker borders, no outlines around the white space, no hearts or sparkles. Every person has exactly two arms and two legs, natural-length arms, and hands with the right number of fingers. No text, letters or numbers anywhere.",
+ "sheets": {
+  "girl": {
+   "refs": [
+    "photos/style.jpg"
+   ],
+   "aspect": "1:1",
+   "prompt": "Image 1: family chibi sticker sheet. Use it for the art style (thick black outlines, flat bright colours, chibi proportions, big eyes) and for exactly how the girl looks: copy her face, hair, colouring and clothes from it. Do not copy its scenes, poses, hearts or sticker borders.\n\nDraw the girl four times as separate full-figure chibi characters for a seek-and-find book, arranged in a 2 x 2 grid on a plain pure white background, with wide white space between them so nothing touches. All four are the same size and the same character: wavy shoulder-length brown hair with a fringe, big eyes, rosy cheeks, lavender T-shirt, navy shorts, pink shoes.\n\n1. Top left: standing facing the viewer, smiling, arms relaxed at her sides.\n2. Top right: sitting on the ground facing the viewer, legs out in front, hands on her knees.\n3. Bottom left: walking towards the right of the picture, seen from the side, mid-step, one arm swinging forward.\n4. Bottom right: peeking: only her head, shoulders and two hands are shown, as if she is looking over a low wall, with the drawing ending in a straight horizontal line at chest height and nothing drawn below that line.\n\n{tail}"
+  },
+  "dad": {
+   "refs": [
+    "photos/style.jpg"
+   ],
+   "aspect": "1:1",
+   "prompt": "Image 1: family chibi sticker sheet. Use it for the art style (thick black outlines, flat bright colours, chibi proportions, big eyes) and for exactly how Dad looks: copy his face, hair, colouring and clothes from it. Do not copy its scenes, poses, hearts or sticker borders.\n\nDraw Dad four times as separate full-figure chibi characters for a seek-and-find book, arranged in a 2 x 2 grid on a plain pure white background, with wide white space between them so nothing touches. All four are the same size and the same character: dark brown hair short at the sides and swept back on top, a full dark brown beard with a grey patch on the chin, a navy short-sleeved shirt, dark jeans, white sneakers, and a colourful sleeve tattoo on his right arm only, with his left arm plain skin.\n\n1. Top left: standing facing the viewer, smiling, arms relaxed at his sides, the tattooed arm on the viewer's left.\n2. Top right: sitting on the ground facing the viewer, knees up, arms resting on his knees.\n3. Bottom left: walking towards the right of the picture, seen from the side, mid-step, so his right arm with the tattoo is the arm nearest the viewer.\n4. Bottom right: peeking: only his head, shoulders and two hands are shown, as if he is looking over a low wall, with the drawing ending in a straight horizontal line at chest height and nothing drawn below that line.\n\n{tail}"
+  },
+  "mum": {
+   "refs": [
+    "photos/style.jpg"
+   ],
+   "aspect": "1:1",
+   "prompt": "Image 1: family chibi sticker sheet. Use it for the art style (thick black outlines, flat bright colours, chibi proportions, big eyes) and for exactly how Mum looks: copy her face, hair, colouring and clothes from it. Do not copy its scenes, poses, hearts or sticker borders.\n\nDraw Mum four times as separate full-figure chibi characters for a seek-and-find book, arranged in a 2 x 2 grid on a plain pure white background, with wide white space between them so nothing touches. All four are the same size and the same character: dark hair in a high bun, tortoiseshell glasses, a cream short-sleeved top, black trousers, black flat shoes.\n\n1. Top left: standing facing the viewer, smiling, arms relaxed at her sides.\n2. Top right: sitting on the ground facing the viewer, legs folded to one side, one hand on the ground.\n3. Bottom left: walking towards the right of the picture, seen from the side, mid-step, one arm swinging forward.\n4. Bottom right: peeking: only her head, shoulders and two hands are shown, as if she is looking over a low wall, with the drawing ending in a straight horizontal line at chest height and nothing drawn below that line.\n\n{tail}"
+  },
+  "grandma": {
+   "refs": [
+    "photos/style.jpg"
+   ],
+   "aspect": "1:1",
+   "prompt": "Image 1: family chibi sticker sheet. Use it for the art style (thick black outlines, flat bright colours, chibi proportions, big eyes) and for exactly how Grandma looks: copy her face, hair, colouring and clothes from it. Do not copy its scenes, poses, hearts or sticker borders.\n\nDraw Grandma four times as separate full-figure chibi characters for a seek-and-find book, arranged in a 2 x 2 grid on a plain pure white background, with wide white space between them so nothing touches. All four are the same size and the same character: shoulder-length ash-blonde and grey hair, a soft smile, a dark green knee-length dress with small red flowers, flat shoes.\n\n1. Top left: standing facing the viewer, smiling, hands clasped in front of her.\n2. Top right: sitting on the ground facing the viewer, legs folded to one side, one hand on the ground.\n3. Bottom left: walking towards the right of the picture, seen from the side, mid-step, one arm swinging forward.\n4. Bottom right: peeking: only her head, shoulders and two hands are shown, as if she is looking over a low wall, with the drawing ending in a straight horizontal line at chest height and nothing drawn below that line.\n\n{tail}"
+  },
+  "uncle": {
+   "refs": [
+    "photos/uncle.jpg",
+    "photos/style.jpg"
+   ],
+   "aspect": "1:1",
+   "prompt": "Image 1: photo of the uncle (the adult). Use it for his face, hair and glasses only. Do not copy his clothes or the child.\nImage 2: family chibi sticker sheet. Use it for the art style only (thick black outlines, flat bright colours, chibi proportions, big eyes). Do not copy its people, scenes, poses, hearts or sticker borders.\n\nDraw the uncle four times as separate full-figure chibi characters for a seek-and-find book, arranged in a 2 x 2 grid on a plain pure white background, with wide white space between them so nothing touches. All four are the same size and the same character: a slim young man with short straight black hair with a fringe, round thin wire-framed glasses, a warm smile, a light blue collared shirt under an open grey hooded jacket, black trousers, white sneakers.\n\n1. Top left: standing facing the viewer, smiling, arms relaxed at his sides.\n2. Top right: sitting on the ground facing the viewer, cross-legged, hands on his knees.\n3. Bottom left: walking towards the right of the picture, seen from the side, mid-step, one arm swinging forward.\n4. Bottom right: peeking: only his head, shoulders and two hands are shown, as if he is looking over a low wall, with the drawing ending in a straight horizontal line at chest height and nothing drawn below that line.\n\n{tail}"
+  },
+  "grandparents": {
+   "refs": [
+    "photos/grandparents.jpg",
+    "photos/style.jpg"
+   ],
+   "aspect": "1:1",
+   "prompt": "Image 1: photo of Grandma (the woman) and Grandpa (the man). Use it for their faces, hair and her glasses only. Do not copy their clothes or the baby.\nImage 2: family chibi sticker sheet. Use it for the art style only (thick black outlines, flat bright colours, chibi proportions, big eyes). Do not copy its people, scenes, poses, hearts or sticker borders.\n\nDraw the grandparents as a pair of chibi characters for a seek-and-find book, four times, arranged in a 2 x 2 grid on a plain pure white background, with wide white space between the four pairs so nothing touches. In every pair they stand or sit side by side and touching, Grandma on the left and Grandpa on the right, drawn at the same size as each other. Grandma: a short black bob with a fringe, round dark-rimmed glasses, a gentle smile, a black blouse, tan trousers, flat shoes. Grandpa: short dark hair flecked with grey, a warm smile, a navy polo shirt with a white collar, navy trousers, dark shoes.\n\n1. Top left: standing facing the viewer, arm in arm, both smiling.\n2. Top right: sitting on the ground side by side facing the viewer, cross-legged, his arm around her shoulders.\n3. Bottom left: walking together towards the right of the picture, seen from the side, mid-step, holding hands.\n4. Bottom right: peeking: only their heads, shoulders and hands are shown, side by side, as if they are looking over a low wall, with the drawing ending in one straight horizontal line at chest height and nothing drawn below that line.\n\n{tail}"
+  },
+  "objects": {
+   "refs": [
+    "photos/teddy.jpg",
+    "photos/unicorn.jpg",
+    "photos/style.jpg"
+   ],
+   "aspect": "3:2",
+   "prompt": "Image 1: photo of Teddy, a soft doll. Use it for what the doll looks like.\nImage 2: the unicorn monster from the girl's Monster Book, drawn in three pieces separated by dashed lines. It is the girl's favourite: copy this exact character, drawn whole as one figure.\nImage 3: family chibi sticker sheet. Use it for the art style only (thick black outlines, flat bright colours). Do not copy its people, scenes or sticker borders.\n\nDraw six separate objects for a seek-and-find book in the style of Image 3, arranged in a 3 x 2 grid on a plain pure white background, with wide white space between them so nothing touches. All six are about the same size.\n\nTop row:\n1. A pair of pink ballet shoes with pink ribbons, lying side by side, seen from above.\n2. The same pair of pink ballet shoes hanging by their tied ribbons.\n3. Teddy: the sleepy doll from Image 1, lying on its back with its arms out, in a sage-green onesie with a pointed hood, eyes closed in two sleepy curved lines, a tuft of auburn hair and a small rainbow on the chest.\nBottom row:\n4. Teddy sitting up facing the viewer, eyes closed in two sleepy curved lines, the same as the doll in Image 1.\n5. The unicorn monster from Image 2, whole, standing facing the viewer, exactly as Image 2 draws it: soft lilac-purple fur, a wide goofy grin showing two white front teeth, round eyes, a golden spiral horn with two small curled purple horns beside it, a rainbow mane falling past its cheeks, a big pink heart on its tummy, a rainbow tail, and gold hooves.\n6. The same unicorn monster peeking: only its head, horns, mane and two hooves are shown, as if looking over a low wall, with the drawing ending in a straight horizontal line below the hooves and nothing drawn below that line.\n\nFlat colour with no shading, no shadows on the ground, no sticker borders, no outlines around the white space, no hearts or sparkles around the objects. No text, letters or numbers anywhere."
+  }
+ },
+ "scenes": {
+  "01": {
+   "title": "The toy shop",
+   "refs": [
+    "photos/style.jpg"
+   ],
+   "aspect": "3:2",
+   "prompt": "Image 1: family chibi sticker sheet. Use it for the art style only: thick black outlines, flat bright colours with no shading, chibi proportions with big heads and big eyes, rosy cheeks. Do not copy its people, scenes, poses or sticker borders.\n\nPaint one extremely busy seek-and-find scene for a children's picture book: a huge toy shop on the busiest day of its big sale, packed wall to wall like a crowded market, seen from high above so the whole floor is visible.\n\nThe crowd comes first: at least 150 small cartoon people in the same chibi style fill the floor of the shop, each no taller than one-twentieth of the picture's height (a little bigger at the front, a little smaller at the back). Every face is different: children and grown-ups of every age, many different skin tones, face shapes and hairstyles (curly, straight, short, long, plaits, ponytails, bald, grey), some in hats, caps or headbands, a few in glasses, clothes in reds, yellows, oranges, greens, teals, blues and pinks with stripes, spots and patterns. They are doing lots of different things: queuing at three tills, pushing prams and trolleys, carrying stacks of boxes, children riding ride-on toys, playing with the train set, trying on costumes and crowns, hugging teddies, crying over a dropped ice cream, a dad asleep on a bench, staff on ladders stocking shelves, a child hiding in a pile of plush toys, a birthday party group in party hats.\n\nThe toys fill the shelves around the edges and a few islands in the middle: a mountain of teddy bears and plush animals, dolls and dolls' houses, a toy train on a big track, a bin of bouncy balls spilling across the floor, building block towers, toy cars and a race track, dinosaurs, rocking horses, a puppet theatre, a rack of dress-up costumes, kites and balloons hanging from the ceiling.\n\nLeave small patches of open floor between the groups of people, spread across the whole picture. Keep the ceiling to a thin band at the top. Nobody wears lavender, light purple, navy, cream or dark green, nobody has a full beard, and nobody has their hair in a high bun.\n\nEvery person has exactly two arms and two legs, natural-length arms, and hands with the right number of fingers. No text, letters or numbers anywhere, including on signs, boxes, price tags and shelves. 3:2 landscape, highest resolution."
+  }
+ }
+}
