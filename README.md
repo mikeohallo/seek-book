@@ -2,15 +2,15 @@
 
 A seek-and-find game for a small child, starring her own family. Every busy picture hides the girl, Dad, Mum, Grandma, the uncle, the grandparents, her ballet shoes, her favourite toy Teddy and the unicorn from her Monster Book. Tap everyone you can find.
 
-**Try it:** [seek.mikeohalloran.au](https://seek.mikeohalloran.au/)
+**Try it:** [seek.mikeohalloran.au](https://seek.mikeohalloran.au/), or start at [the playroom](https://play.mikeohalloran.au/), which has this and the Monster Book side by side.
 
 Built with [Claude](https://claude.ai), alongside the printed book it goes with. It's the sister project of [monster-book](https://github.com/mikeohallo/monster-book).
 
-![The home page, a page half found, and everyone found](docs/screenshot.png)
+![The home page, a page being played, and everyone found](docs/screenshot.png)
 
 ## The story
 
-After the [Monster Book](https://monsters.mikeohalloran.au/), the girl is getting a second book: a seek-and-find where the people hiding in the crowd are her own family, drawn as the cartoon versions she already knows from her stickers. Ten busy places (a toy shop, a playground, a swimming pool, the airport, a zoo and more), each across a two-page spread, coil-bound so it lies flat. The pages are being made one at a time, and each one goes onto the website as it's finished. She already does serious Where's Wally-style books, so the pictures are dense: 150 or more people on every spread, with the family the same size as everyone else.
+After the [Monster Book](https://monsters.mikeohalloran.au/), the girl is getting a second book: a seek-and-find where the people hiding in the crowd are her own family, drawn as the cartoon versions she already knows from her stickers. Ten busy places, each across a two-page spread, coil-bound so it lies flat: a toy shop, a library, a playground, a supermarket, a swimming pool, an airport, Grandma's garden, a ballet school, a zoo and a party in the park. All ten are finished and on the website; the printed copy comes next. She already does serious Where's Wally-style books, so the pictures are dense and mostly get harder as you go: about a hundred people on the first page, over 250 on the busiest, with the family the same size as everyone else.
 
 The website is the same book on a phone. Same pictures, same family, same hiding places, plus things paper can't do: it knows when you've found someone, it can give a clue, and it remembers how far you got.
 
@@ -34,11 +34,14 @@ The pictures are painted by Google AI Studio, but AI image models can't be trust
 
 So the answer key is right by construction, and the website and the book always agree.
 
-The site itself follows the monster site: **one HTML file plus pictures.** No framework, no server, no accounts, no analytics, hosted free on Cloudflare Pages. Progress lives in `localStorage` on the device. The chime is synthesised with Web Audio, so there are no sound files. Nothing anyone does leaves their phone; the only outside request is Google Fonts.
+The site itself follows the monster site: **one HTML file plus pictures.** No framework, no server, no accounts, no analytics, hosted free on Cloudflare Pages. Progress lives in `localStorage` on the device. The chime is synthesised with Web Audio, so there are no sound files. Nothing anyone does leaves their phone; the only outside request is Google Fonts. The site asks search engines not to list it, and a "More to play" link at the bottom goes back to [the playroom](https://play.mikeohalloran.au/), carrying the `?for=` name along.
 
 ### Things that turned out to matter
 
 - **Density first.** The first mock had 40 people and was far too easy. A test prompt asking for "at least 150 tiny people" came back with about 160, all crisp at print size, so one image per spread is enough and the difficulty comes from the crowd, not tricks.
+- **Show the whole place.** Asking for "a busy toy shop" or "a big library" gave big people and empty floor, however many people the prompt asked for. Asking for the whole place at once, like a map seen from high above (every aisle, every checkout, the bakery and the deli all in one picture), forced everything smaller. From the supermarket on, the pictures came back with more people at about two-thirds the size.
+- **"Add more people" doesn't work.** Sending a sparse picture back and asking AI Studio to keep everything and add 120 more people returned almost the same picture. Rewriting the prompt and starting again worked better.
+- **Words sneak in.** Every prompt says no text anywhere, and signs still came back saying ZOO, SNACK and ICE-CREAM. They're painted out in code, filled with the sign's own colour, before the family goes in, so every page stays wordless.
 - **Nobody stands in front of a find who shouldn't.** A pasted cut-out is always on top, so if a child in the crowd is nearer the viewer than the hidden Dad, Dad looks like he's standing on her head. `hide.py spots` suggests places where the floor just below the feet is open, so there's nobody in front. Flat roofs read as open floor too, so each scene can list no-go boxes.
 - **Peeking needs a ledge.** Some cut-outs peek over a wall. AI Studio always draws the wall as a line, with fingers gripping over it. The cutter erases the line but keeps the fingers, finding the line from the columns that stick out past the figure on both sides.
 - **Dad is never mirrored.** His tattoo is on one arm. Flip the cut-out and it's on the other, so the builder refuses a flipped Dad.
