@@ -1,0 +1,20 @@
+# The pictures are the book; they stay out of the repo.
+scenes/
+thumbs/
+portraits/
+share.jpg
+data.json
+sheets/
+cutouts/
+photos/
+pages/
+preview/
+website/
+*.pdf
+*.zip
+
+# local bits
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
