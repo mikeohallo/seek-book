@@ -33,6 +33,7 @@ page = f'''<!doctype html>
 <title>My Seek and Find</title>
 <meta name="description" content="{desc}">
 <meta name="theme-color" content="#FFF8EC">
+<meta name="robots" content="noindex">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Seek and Find">
 <meta property="og:description" content="{desc}">
