@@ -261,7 +261,10 @@ function ownerName() {
   let f = null; try { f = new URLSearchParams(location.search).get('for'); } catch (e) {}
   return (f || store.owner || DEFAULT_OWNER || '').trim().slice(0, 20);
 }
-const foundIn = n => new Set(store.found[n] || []);
+// progress is kept per picture: each spread's key changes whenever its picture or hiding places change,
+// so ticks from an old version of a page never show up on a new one
+const K = n => { const s = DATA && DATA.spreads.find(s => s.n === n); return (s && s.key) || String(n); };
+const foundIn = n => new Set(store.found[K(n)] || []);
 
 // --------------------------------------------------------------- title ----
 function rainbow(el, text, start = 0) {
@@ -365,7 +368,7 @@ function renderHome() {
       const a = document.createElement('button'); a.className = 'again'; a.textContent = 'Start this page again';
       a.addEventListener('click', () => {
         if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = 'Tap again to clear it'; setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
-        againArmed = null; delete store.found[sp.n]; persist(); renderHome();
+        againArmed = null; delete store.found[K(sp.n)]; persist(); renderHome();
       });
       wrap.append(a);
     }
@@ -515,7 +518,7 @@ function miss(px, py) {
   stage.append(m); setTimeout(() => m.remove(), 700);
 }
 function found(f, px, py) {
-  const list = store.found[page.n] || (store.found[page.n] = []);
+  const list = store.found[K(page.n)] || (store.found[K(page.n)] = []);
   list.push(f.id); persist();
   drawRing(f, true);
   const r = stage.getBoundingClientRect();
@@ -650,7 +653,7 @@ function goHome() {
 // -------------------------------------------------------------- wiring ----
 $('back').addEventListener('click', goHome);
 $('finHome').addEventListener('click', goHome);
-$('finAgain').addEventListener('click', () => { const n = page.n; delete store.found[n]; persist(); openPage(n); });
+$('finAgain').addEventListener('click', () => { const n = page.n; delete store.found[K(n)]; persist(); openPage(n); });
 $('finNext').addEventListener('click', () => { const next = DATA.spreads.find(s => s.n > page.n); if (next) openPage(next.n); });
 $('sound').addEventListener('click', () => { store.sound = !store.sound; persist(); drawSound(); if (store.sound) chime(); });
 $('zin').addEventListener('click', () => zoomButton(1.6));
@@ -662,6 +665,10 @@ drawSound();
 fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
   DATA = d;
   DATA.byId = Object.fromEntries(d.finds.map(f => [f.id, { ...f, say: f.say || f.label }]));
+  const keep = new Set(DATA.spreads.map(s => K(s.n)));      // forget progress on pictures that have changed
+  let pruned = false;
+  for (const k of Object.keys(store.found)) if (!keep.has(k)) { delete store.found[k]; pruned = true; }
+  if (pruned) persist();
   renderHome();
   const m = /^#page(\d+)$/.exec(location.hash);
   if (m && DATA.spreads.some(s => s.n === +m[1])) openPage(+m[1]);

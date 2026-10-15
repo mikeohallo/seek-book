@@ -26,7 +26,7 @@ Each spread is one continuous picture 420 x 249 across both pages; each page pri
 Finds stay 20 mm clear of the coil edge (spread x 190-230). Key strip 258-291 down.
 Even PDF pages are versos (coil on their right), odd pages rectos (coil on the left).
 """
-import json, math, os, sys, argparse
+import json, math, os, sys, argparse, hashlib
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from scipy import ndimage
@@ -484,6 +484,11 @@ def cmd_spots(args):
         save_book(book); print('scenes.json updated')
 
 # ---------------------------------------------------------------- website export
+def file_ver(path):
+    """A short fingerprint of a file's contents, for ?v= links."""
+    with open(path, 'rb') as fh:
+        return hashlib.md5(fh.read()).hexdigest()[:8]
+
 def cmd_web(args):
     """Export the website's pictures and data from scenes.json into OUT (default website/upload):
     scenes/sNN.webp (the spread with the finds in place, 3200 px wide), thumbs/sNN.webp (640 px),
@@ -499,7 +504,7 @@ def cmd_web(args):
         pt.save(os.path.join(out, 'portraits', fd['id'] + '.webp'), quality=90, method=6)
         data['finds'].append({'id': fd['id'], 'label': fd['label'], 'say': fd.get('say', fd['label']),
                               'colour': '#%02X%02X%02X' % FAMILY[fd['colour']],
-                              'portrait': f"portraits/{fd['id']}.webp"})
+                              'portrait': f"portraits/{fd['id']}.webp?v={file_ver(os.path.join(out, 'portraits', fd['id'] + '.webp'))}"})
     for sd in book['spreads']:
         if not os.path.exists(os.path.join('scenes', sd['scene'])):
             print(f'spread {sd["n"]}: scene file missing, skipped'); continue
@@ -518,8 +523,15 @@ def cmd_web(args):
             boxes.append({'id': p['find'],
                           'box': [round((p['x'] - w / 2) / SPREAD_W_MM, 5), round((p['y'] - p['h']) / SCENE_H_MM, 5),
                                   round((p['x'] + w / 2) / SPREAD_W_MM, 5), round(p['y'] / SCENE_H_MM, 5)]})
-        data['spreads'].append({'n': n, 'title': sd['title'], 'img': f'scenes/s{n:02d}.webp',
-                                'thumb': f'thumbs/s{n:02d}.webp', 'w': wpx, 'h': hpx, 'finds': boxes})
+        # key: changes when the picture or the hiding places change, so the site never shows old ticks on a
+        # new picture; ?v= makes phones fetch a changed picture instead of a cached one
+        spec = json.dumps({'scene': sd['scene'], 'trim': [sd.get('trim_top', 1.0), sd.get('trim_left', 0.5)],
+                           'places': sd.get('places', [])}, sort_keys=True)
+        key = f'{n}-' + hashlib.md5(spec.encode()).hexdigest()[:6]
+        data['spreads'].append({'n': n, 'key': key, 'title': sd['title'],
+                                'img': f"scenes/s{n:02d}.webp?v={file_ver(os.path.join(out, 'scenes', f's{n:02d}.webp'))}",
+                                'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
+                                'w': wpx, 'h': hpx, 'finds': boxes})
         kb = os.path.getsize(os.path.join(out, 'scenes', f's{n:02d}.webp')) // 1024
         print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {wpx} x {hpx} px, {kb} KB')
     with open(os.path.join(out, 'data.json'), 'w', encoding='utf-8') as fh:
