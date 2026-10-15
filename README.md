@@ -6,7 +6,7 @@ A seek-and-find game for a small child, starring her own family. Every busy pict
 
 Built with [Claude](https://claude.ai), alongside the printed book it goes with. It's the sister project of [monster-book](https://github.com/mikeohallo/monster-book).
 
-![The home page, a page being played, and everyone found](docs/screenshot.png)
+![The home page, a page being played, and everyone found with Hide everyone again](docs/screenshot.png)
 
 ## The story
 
@@ -18,7 +18,7 @@ The website is the same book on a phone. Same pictures, same family, same hiding
 2. **Look.** Drag to move around and pinch to zoom on a phone; drag and scroll-wheel on a laptop. A phone held upright fills the screen with the picture and you pan sideways, like holding the book close.
 3. **Tap.** Find someone and they get a ring in their colour, a chime, some confetti and a tick on their face in the row along the bottom. Tap nothing and you just get a little wobble, no buzzer.
 4. **Stuck?** Press and hold a face, and a soft glow lights up roughly where they are. It's deliberately off-centre, so it narrows the search without giving the answer away.
-5. **Everyone found.** A celebration, then on to the next page.
+5. **Everyone found.** A celebration, then on to the next page, or **Hide everyone again**: the family scatter to new hiding places on the same picture, in new poses, so a page you know by heart is a new game. "Start this page again" on the home screen puts everyone back where the book has them.
 
 A gift link like `?for=Max` makes it "Max's Seek and Find" on that device.
 
@@ -34,6 +34,8 @@ The pictures are painted by Google AI Studio, but AI image models can't be trust
 
 So the answer key is right by construction, and the website and the book always agree.
 
+The website goes one step further: it gets the pictures *empty*, plus the family cut-outs, and places everyone itself. A first play uses the book's places. **Hide everyone again** picks a new mix from a list of checked spots on each page (about 25 per page, 260 in all: feet on open ground, nobody in front, each one looked at zoomed in), with room for the grandparents' pair and smaller spots for the toys. A round is just a random seed saved on the device, so a half-finished round comes back the same after a reload.
+
 The site itself follows the monster site: **one HTML file plus pictures.** No framework, no server, no accounts, no analytics, hosted free on Cloudflare Pages. Progress lives in `localStorage` on the device. The chime is synthesised with Web Audio, so there are no sound files. Nothing anyone does leaves their phone; the only outside request is Google Fonts. The site asks search engines not to list it, and a "More to play" link at the bottom goes back to [the playroom](https://play.mikeohalloran.au/), carrying the `?for=` name along.
 
 ### Things that turned out to matter
@@ -42,6 +44,8 @@ The site itself follows the monster site: **one HTML file plus pictures.** No fr
 - **Show the whole place.** Asking for "a busy toy shop" or "a big library" gave big people and empty floor, however many people the prompt asked for. Asking for the whole place at once, like a map seen from high above (every aisle, every checkout, the bakery and the deli all in one picture), forced everything smaller. From the supermarket on, the pictures came back with more people at about two-thirds the size.
 - **"Add more people" doesn't work.** Sending a sparse picture back and asking AI Studio to keep everything and add 120 more people returned almost the same picture. Rewriting the prompt and starting again worked better.
 - **Words sneak in.** Every prompt says no text anywhere, and signs still came back saying ZOO, SNACK and ICE-CREAM. They're painted out in code, filled with the sign's own colour, before the family goes in, so every page stays wordless.
+- **New rounds need hand-checked spots, not random ones.** Dropping the family anywhere on the floor looks wrong half the time: feet on a table, a head poking out of someone else's, a person half inside a shelf. `hide.py slots` suggests spots with the same open-floor test as the book and draws each one with a stand-in figure; only the ones that look right are kept. One spot was dropped because a fairy behind it made whoever stood there look like they had wings.
+- **Dad is still never mirrored in new rounds.** Everyone else may face either way.
 - **Nobody stands in front of a find who shouldn't.** A pasted cut-out is always on top, so if a child in the crowd is nearer the viewer than the hidden Dad, Dad looks like he's standing on her head. `hide.py spots` suggests places where the floor just below the feet is open, so there's nobody in front. Flat roofs read as open floor too, so each scene can list no-go boxes.
 - **Peeking needs a ledge.** Some cut-outs peek over a wall. AI Studio always draws the wall as a line, with fingers gripping over it. The cutter erases the line but keeps the fingers, finding the line from the columns that stick out past the figure on both sides.
 - **Dad is never mirrored.** His tattoo is on one arm. Flip the cut-out and it's on the other, so the builder refuses a flipped Dad.
@@ -56,11 +60,11 @@ The site itself follows the monster site: **one HTML file plus pictures.** No fr
 |---|---|
 | `index.html` | The whole site: markup, styles and script in one file, as hosted |
 | `tools/site_src.html` | The same page as written for the Claude preview, before `make_site.py` wraps it for hosting |
-| `tools/hide.py` | The book builder: cuts figures out of AI Studio character sheets, suggests and checks hiding places, builds the print pages, the who's-hiding page, the answers and the PDF, and exports the website's pictures and data |
+| `tools/hide.py` | The book builder: cuts figures out of AI Studio character sheets, suggests and checks hiding places, builds the print pages, the who's-hiding page, the answers and the PDF, finds and records the spots for new rounds (`slots`), and exports the website's empty pictures, cut-outs and data |
 | `tools/gen.py` | Makes the character sheets and scenes with Google AI Studio's image model (needs your own API key) |
 | `tools/prompts.json` | The prompts for every character sheet and scene |
 | `tools/make_site.py` | Wraps the page for hosting (plain link says "My Seek and Find") and zips it for Cloudflare Pages |
-| `tools/test_site.py` | Drives the site in Chromium at phone and laptop size: every find, misses, reload, the finale, start again, zoom, drag, clues |
+| `tools/test_site.py` | Drives the site in Chromium at phone and laptop size: every find, misses, reload, the finale, start again, zoom, drag, clues, and a new round on every page (everyone moves, nobody overlaps, every find taps, a reload keeps the round) |
 | `docs/` | Screenshot |
 
 The pictures aren't in the repo; they're the book. Everything else is.
