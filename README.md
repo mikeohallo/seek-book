@@ -45,6 +45,7 @@ The site itself follows the monster site: **one HTML file plus pictures.** No fr
 - **Fingers are bigger than hidden people.** A find on a phone can be a few millimetres tall. Taps count within a box 40% bigger than the find, and never smaller than a fingertip on screen.
 - **A drag isn't a tap.** Moving more than a few pixels turns a touch into a pan, so looking around never counts as a guess.
 - **Nothing to read.** The faces along the bottom are the to-do list. Found ones get a tick in their colour.
+- **Progress belongs to a picture, not a page number.** When the toy shop replaced the test playground as page 1, a phone that had finished the playground showed the toy shop as already done. Each page now carries a key made from its picture and hiding places, so ticks from an old version never carry over, and picture links include a fingerprint so phones fetch a changed picture instead of a cached one.
 
 ## What's in this repo
 
