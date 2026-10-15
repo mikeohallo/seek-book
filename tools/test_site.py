@@ -7,11 +7,13 @@ Checks: every find on the first page registers when tapped, a tap on nothing sho
 and rings survive a reload, the last find opens "You found everyone!", Start again clears the page,
 the zoom buttons and mouse wheel zoom, a drag never counts as a tap, holding a face shows a clue,
 nothing scrolls sideways, and the page throws no errors.
+Hide everyone again (on every page): the family moves, nobody overlaps, every find in the new round
+can be tapped, a reload keeps the round, and Start this page again puts everyone back in the book's places.
 """
 import asyncio, json, os, subprocess, sys, time
 from playwright.async_api import async_playwright
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.join('website', 'upload')
+ROOT = next((a for a in sys.argv[1:] if not a.startswith('--')), os.path.join('website', 'upload'))
 PORT = 8765
 DATA = json.load(open(os.path.join(ROOT, 'data.json'), encoding='utf-8'))
 SP = DATA['spreads'][0]
@@ -81,9 +83,74 @@ async def run(name, viewport, touch):
         await b.close()
 
 
+async def fam(page):
+    """The family as placed on screen right now: [(left, top, width, height)] in picture px."""
+    return await page.evaluate("""() => [...document.querySelectorAll('#layer img.fam')].map(e =>
+        [parseFloat(e.style.left), parseFloat(e.style.top), parseFloat(e.style.width), parseFloat(e.style.height)])""")
+
+
+async def tap_all(page, tap):
+    boxes = await page.evaluate('page.finds.map(f => f.box)')
+    for b in boxes:
+        await page.click('#zfit'); await page.wait_for_timeout(350)
+        x0, y0, x1, y1 = b
+        pt = await img_to_screen(page, (x0 + x1) / 2, (y0 + y1) / 2)
+        await tap(pt['x'], pt['y']); await page.wait_for_timeout(120)
+    return len(boxes)
+
+
+async def rounds(name, viewport, touch):
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx = await b.new_context(viewport=viewport, has_touch=touch, is_mobile=touch, device_scale_factor=1)
+        page = await ctx.new_page()
+        errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        tap = page.touchscreen.tap if touch else page.mouse.click
+        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        for sp in DATA['spreads']:
+            n = sp['n']
+            await page.goto(f'http://localhost:{PORT}/#page{n}'); await page.reload()
+            await page.wait_for_function("document.getElementById('loading').hidden")
+            book = await fam(page)
+            assert len(book) == len(sp['finds']), f'page {n}: family not all placed'
+            await tap_all(page, tap); await page.wait_for_timeout(1500)
+            assert await page.is_visible('#finale'), f'page {n}: no finale after the book round'
+            await page.click('#finAgain'); await page.wait_for_function("document.getElementById('loading').hidden")
+            await page.wait_for_timeout(200)
+            new = await fam(page)
+            moved = sum(1 for a, c in zip(book, new) if abs(a[0] - c[0]) + abs(a[1] - c[1]) > 20)
+            assert moved >= len(new) - 1, f'page {n}: only {moved} moved'
+            assert await page.text_content('#count') == f'0/{len(new)}', f'page {n}: new round did not start empty'
+            for i in range(len(new)):
+                for j in range(i + 1, len(new)):
+                    a, c = new[i], new[j]
+                    ov_x = min(a[0] + a[2], c[0] + c[2]) - max(a[0], c[0]); ov_y = min(a[1] + a[3], c[1] + c[3]) - max(a[1], c[1])
+                    assert not (ov_x > 4 and ov_y > 4), f'page {n}: two finds overlap in the new round'
+            await page.reload(); await page.wait_for_function("document.getElementById('loading').hidden")
+            assert await fam(page) == new, f'page {n}: reload changed the round'
+            got = await tap_all(page, tap); await page.wait_for_timeout(1500)
+            assert await page.text_content('#count') == f'{got}/{got}', f'page {n}: a find in the new round did not register'
+            assert await page.is_visible('#finale'), f'page {n}: no finale after the new round'
+            print(f'  page {n}: {moved}/{len(new)} moved, all found again')
+        # Start this page again: back to the book's places
+        await page.click('#finHome'); await page.wait_for_timeout(300)
+        last = page.locator('.again').last
+        await last.click(); await last.click(); await page.wait_for_timeout(200)
+        await page.locator('.page-card').last.click(); await page.wait_for_function("document.getElementById('loading').hidden")
+        sp = DATA['spreads'][-1]
+        boxes = await page.evaluate('page.finds.map(f => f.box)')
+        assert all(abs(a - c) < 2e-4 for bx, f in zip(boxes, sp['finds']) for a, c in zip(bx, f["box"])), "Start again did not go back to the book"
+        assert not errs, errs
+        print(f'{name}: hide again checks passed')
+        await b.close()
+
+
 async def main():
-    await run('phone 390 x 760', {'width': 390, 'height': 760}, True)
-    await run('laptop 1280 x 800', {'width': 1280, 'height': 800}, False)
+    if '--rounds-only' not in sys.argv:
+        await run('phone 390 x 760', {'width': 390, 'height': 760}, True)
+        await run('laptop 1280 x 800', {'width': 1280, 'height': 800}, False)
+    await rounds('phone 390 x 760', {'width': 390, 'height': 760}, True)
 
 if __name__ == '__main__':
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT],

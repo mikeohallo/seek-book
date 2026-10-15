@@ -483,6 +483,152 @@ def cmd_spots(args):
     if args.apply:
         save_book(book); print('scenes.json updated')
 
+# ---------------------------------------------------------------- hide again: spots for new rounds
+# On the website, "Hide everyone again" puts the family in new places. Each spread lists checked spots
+# ("slots": feet position x, y in spread mm and a kind), and the site picks a fresh mix for every round.
+# Kinds: p = room for one person, w = wide enough for the grandparents (also fits one person),
+# o = a toy on the ground. Sizes scale with the spread's adult height A (Dad's height in the book).
+ROUND_POSES = {     # find: [(cut, height as a share of A, may be mirrored)]; Dad is never mirrored
+    'girl': [('girl_walk', .70, True), ('girl_stand', .70, True)],
+    'dad': [('dad_stand', 1.0, False), ('dad_walk', 1.0, False)],
+    'mum': [('mum_walk', .96, True), ('mum_stand', .96, True)],
+    'grandma': [('grandma_stand', .93, True), ('grandma_walk', .93, True)],
+    'uncle': [('uncle_stand', 1.0, True), ('uncle_walk', 1.0, True)],
+    'grandparents': [('grandparents_walk', .96, True), ('grandparents_stand', .96, True)],
+    'shoes': [('obj_shoes_flat', .19, True)],
+    'teddy': [('obj_teddy_sit', .29, True), ('obj_teddy_lie', .27, True)],
+    'unicorn': [('obj_unicorn_stand', .32, True)],
+}
+ROUND_KINDS = {'grandparents': 'w', 'shoes': 'o', 'teddy': 'o', 'unicorn': 'o'}   # others: 'pw'
+SLOT_TEST = {'p': ('uncle_walk', 1.0), 'w': ('grandparents_walk', .96), 'o': ('obj_teddy_lie', .27)}
+
+def adult_h(sd):
+    return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
+
+def floor_mask(sp, refs, res=4, tol=22):
+    """Open ground at `res` px per mm: close to one of the floor colours sampled at `refs`
+    (spread mm) and smooth (no outlines or detail)."""
+    small = sp.resize((SPREAD_W_MM * res, SCENE_H_MM * res), Image.LANCZOS)
+    a = np.asarray(small).astype(np.float32)
+    cols = [a[int(y * res), int(x * res)] for x, y in refs]
+    dist = np.min(np.stack([np.sqrt(((a - c) ** 2).sum(-1)) for c in cols]), axis=0)
+    g = np.asarray(small.convert('L')).astype(np.float32)
+    mag = np.hypot(ndimage.sobel(g, 0), ndimage.sobel(g, 1))
+    return ndimage.binary_opening((dist < tol) & (mag < 60), iterations=1)
+
+def place_on(sp, items):
+    """Composite [(cut, x, y, h, flip)] (spread mm) onto a copy of the spread picture."""
+    can = sp.convert('RGBA')
+    for cut_name, x, y, h, flip in items:
+        cut = load_cut(cut_name)
+        if flip:
+            cut = ImageOps.mirror(cut)
+        hpx = mm(h); cut = resize_rgba(cut, cut.width * hpx / cut.height, hpx)
+        can.alpha_composite(cut, (int(round(mm(x) - cut.width / 2)), int(round(mm(y) - cut.height))))
+    return can.convert('RGB')
+
+def slot_sheet(sp, slots, A, out, label_from=0):
+    """Review sheet: every slot with its test figure in place, cropped and numbered."""
+    f = ImageFont.truetype(NUNITO, 30) if os.path.exists(NUNITO) else ImageFont.load_default()
+    tiles = []
+    for i, (x, y, k) in enumerate(slots):
+        cut_name, share = SLOT_TEST[k]
+        h = share * A; w = h * load_cut(cut_name).width / load_cut(cut_name).height
+        im = place_on(sp, [(cut_name, x, y, h, False)])
+        box = (mm(x - w / 2 - max(w * .8, h * .45)), mm(y - h * 1.35), mm(x + w / 2 + max(w * .8, h * .45)), mm(y + h * .4))
+        t = im.crop(box); t = t.resize((360, round(t.height * 360 / t.width)), Image.LANCZOS)
+        d = ImageDraw.Draw(t)
+        d.text((6, 4), f'{label_from + i} {k}', font=f, fill=(255, 255, 255), stroke_width=3, stroke_fill=(0, 0, 0))
+        tiles.append(t)
+    if not tiles:
+        return
+    cols = 4; th = max(t.height for t in tiles); rows = math.ceil(len(tiles) / cols)
+    sheet = Image.new('RGB', (cols * 364, rows * (th + 4)), (255, 255, 255))
+    for i, t in enumerate(tiles):
+        sheet.paste(t, ((i % cols) * 364, (i // cols) * (th + 4)))
+    sheet.save(out, quality=84)
+    print('saved', out)
+
+def cmd_slots(args):
+    """Suggest spots for new rounds and draw review sheets; with --keep, save the approved ones.
+        slots N --refs "x,y x,y ..."     floor colours to treat as open ground (saved in scenes.json)
+        slots N --keep "1,4,7"           keep these candidates (numbers from the review sheets)
+    Candidates: the feet and a strip just below them are on open ground (nobody in front), spots at
+    least --spacing x A apart, clear of the coil and the edges."""
+    book = load_book(); sd = spread_def(book, args.n)
+    n = int(sd['n']); cand_path = os.path.join('preview', f'slots_{n:02d}.json')
+    sp = render_spread(book, sd, with_finds=False)
+    A = adult_h(sd)
+    if args.keep is not None:
+        cands = json.load(open(cand_path, encoding='utf-8'))
+        keep = [int(v) for v in args.keep.replace(' ', ',').split(',') if v.strip()]
+        sd['slots'] = [[round(cands[i][0], 1), round(cands[i][1], 1), cands[i][2]] for i in keep]
+        save_book(book)
+        kinds = {k: sum(1 for s in sd['slots'] if s[2] == k) for k in 'pwo'}
+        print(f'spread {n}: {len(sd["slots"])} slots kept {kinds}')
+        marks = place_on(sp, [(SLOT_TEST[k][0], x, y, SLOT_TEST[k][1] * A, False) for x, y, k in sd['slots']])
+        marks.resize((marks.width // 3, marks.height // 3), Image.LANCZOS).save(os.path.join('preview', f'slots_{n:02d}_all.jpg'), quality=85)
+        return
+    if args.refs:
+        sd['floor'] = [[float(v) for v in r.split(',')] for r in args.refs.split()]
+        save_book(book)
+    refs = sd.get('floor')
+    if not refs:
+        sys.exit('give --refs "x,y x,y" (spread mm points on open floor) the first time')
+    res = 4
+    floor = floor_mask(sp, refs, res).astype(np.float32)
+    ii = np.pad(floor.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+    def fm(x0, y0, x1, y1):
+        X0, Y0, X1, Y1 = [int(round(v * res)) for v in (x0, y0, x1, y1)]
+        X0, Y0 = max(0, X0), max(0, Y0); X1, Y1 = min(floor.shape[1], X1), min(floor.shape[0], Y1)
+        if X1 <= X0 or Y1 <= Y0:
+            return 0.0
+        return float((ii[Y1, X1] - ii[Y0, X1] - ii[Y1, X0] + ii[Y0, X0]) / ((X1 - X0) * (Y1 - Y0)))
+    want = {'w': args.wide, 'p': args.person, 'o': args.objects}
+    taken = []
+    out = []
+    # the book's own hiding places are good spots for someone else in a new round
+    for p in sd['places']:
+        k = {'grandparents': 'w'}.get(p.get('find'), 'p')
+        if p.get('find') in ('shoes', 'teddy', 'unicorn') or not p['cut'].split('_')[-1] in ('stand', 'walk'):
+            continue
+        taken.append((p['x'], p['y'])); out.append([float(p['x']), float(p['y']), k])
+    for k in ('w', 'p', 'o'):
+        cut_name, share = SLOT_TEST[k]
+        cut = load_cut(cut_name); h = share * A; w = h * cut.width / cut.height
+        cands = []
+        for x in np.arange(MARGIN + 4 + w / 2, SPREAD_W_MM - MARGIN - 4 - w / 2, 1.0):
+            if x + w / 2 > PAGE_W_MM - FIND_CLEAR and x - w / 2 < PAGE_W_MM + FIND_CLEAR:
+                continue
+            for y in np.arange(h + 3, SCENE_H_MM - 3, 1.0):
+                if k == 'o':
+                    if fm(x - w / 2, y - h, x + w / 2, y) < .85 or fm(x - w / 2, y, x + w / 2, y + 2) < .8:
+                        continue
+                    busy = 1 - fm(x - w * 1.5, y - h * 2, x + w * 1.5, y + h)
+                else:
+                    if fm(x - .4 * w, y - .22 * h, x + .4 * w, y) < args.legs or fm(x - .42 * w, y, x + .42 * w, y + .12 * h) < args.below:
+                        continue
+                    busy = 1 - fm(x - .5 * w, y - h, x + .5 * w, y - .25 * h)
+                cands.append((busy + .03 * rng_jitter(x, y), float(x), float(y)))
+        cands.sort(reverse=True)
+        got = 0
+        for busy, x, y in cands:
+            if got >= want[k]:
+                break
+            if any(math.hypot(x - tx, y - ty) < args.spacing * A for tx, ty in taken):
+                continue
+            taken.append((x, y)); out.append([x, y, k]); got += 1
+        print(f'{k}: {len(cands)} positions pass, {got} suggested')
+    os.makedirs('preview', exist_ok=True)
+    json.dump(out, open(cand_path, 'w', encoding='utf-8'))
+    half = math.ceil(len(out) / 2)
+    slot_sheet(sp, out[:half], A, os.path.join('preview', f'slots_{n:02d}_a.jpg'), 0)
+    slot_sheet(sp, out[half:], A, os.path.join('preview', f'slots_{n:02d}_b.jpg'), half)
+
+def rng_jitter(x, y):
+    """A fixed pseudo-random number in [0, 1) per position, so ties don't all cluster in one corner."""
+    return (math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1.0
+
 # ---------------------------------------------------------------- website export
 def file_ver(path):
     """A short fingerprint of a file's contents, for ?v= links."""
@@ -491,30 +637,46 @@ def file_ver(path):
 
 def cmd_web(args):
     """Export the website's pictures and data from scenes.json into OUT (default website/upload):
-    scenes/sNN.webp (the spread with the finds in place, 3200 px wide), thumbs/sNN.webp (640 px),
-    portraits/<id>.webp (the key portraits, 240 px) and data.json (finds, spreads and each find's
-    box as fractions of the picture, which the site uses for taps and rings)."""
+    scenes/sNN.webp (the empty spread, 3200 px wide), thumbs/sNN.webp (640 px, also empty, so the home
+    page gives nothing away), cuts/<name>.webp (every cut-out, 400 px tall), portraits/<id>.webp (the
+    key portraits, 240 px) and data.json. The site places the family on the empty picture itself:
+    the book's places on a first play, and a new mix of the spread's checked spots on "Hide everyone
+    again". data.json holds the finds, the poses allowed in new rounds, each cut-out's shape, and per
+    spread the adult height A, the book's places, their boxes as fractions of the picture, and the spots."""
     book = load_book()
     out = args.out
-    for d in ('scenes', 'thumbs', 'portraits'):
+    for d in ('scenes', 'thumbs', 'portraits', 'cuts'):
         os.makedirs(os.path.join(out, d), exist_ok=True)
-    data = {'title': book.get('title', ''), 'finds': [], 'spreads': []}
+    data = {'title': book.get('title', ''), 'mm': [SPREAD_W_MM, SCENE_H_MM], 'finds': [], 'spreads': [],
+            'cuts': {}, 'poses': {}}
     for fd in book['finds']:
         pt = portrait(fd, 240, 14)
         pt.save(os.path.join(out, 'portraits', fd['id'] + '.webp'), quality=90, method=6)
         data['finds'].append({'id': fd['id'], 'label': fd['label'], 'say': fd.get('say', fd['label']),
                               'colour': '#%02X%02X%02X' % FAMILY[fd['colour']],
                               'portrait': f"portraits/{fd['id']}.webp?v={file_ver(os.path.join(out, 'portraits', fd['id'] + '.webp'))}"})
+        data['poses'][fd['id']] = [{'cut': c, 'f': f, 'flip': fl, 'k': ROUND_KINDS.get(fd['id'], 'pw')}
+                                   for c, f, fl in ROUND_POSES[fd['id']]]
+    # the cut-outs: the site places the family itself (the book's places first, new ones on "Hide again")
+    cut_names = sorted({p['cut'] for sd in book['spreads'] for p in sd.get('places', [])} |
+                       {c for poses in ROUND_POSES.values() for c, _, _ in poses})
+    for name in cut_names:
+        cut = load_cut(name)
+        hpx = args.cut_height
+        small = resize_rgba(cut, cut.width * hpx / cut.height, hpx)
+        path = os.path.join(out, 'cuts', name + '.webp')
+        small.save(path, 'WEBP', quality=88, method=6)
+        data['cuts'][name] = {'src': f"cuts/{name}.webp?v={file_ver(path)}", 'a': round(cut.width / cut.height, 4)}
     for sd in book['spreads']:
         if not os.path.exists(os.path.join('scenes', sd['scene'])):
             print(f'spread {sd["n"]}: scene file missing, skipped'); continue
         n = int(sd['n'])
-        sp = render_spread(book, sd)
+        sp = render_spread(book, sd, with_finds=False)       # the empty picture: the site adds the family
         wpx = args.width; hpx = round(sp.height * wpx / sp.width)
         sp.resize((wpx, hpx), Image.LANCZOS).save(os.path.join(out, 'scenes', f's{n:02d}.webp'), quality=args.quality, method=6)
         sp.resize((640, round(sp.height * 640 / sp.width)), Image.LANCZOS).save(
             os.path.join(out, 'thumbs', f's{n:02d}.webp'), quality=80, method=6)
-        boxes = []
+        boxes, book_places = [], []
         for p in sd.get('places', []):
             if not p.get('find'):
                 continue
@@ -523,17 +685,20 @@ def cmd_web(args):
             boxes.append({'id': p['find'],
                           'box': [round((p['x'] - w / 2) / SPREAD_W_MM, 5), round((p['y'] - p['h']) / SCENE_H_MM, 5),
                                   round((p['x'] + w / 2) / SPREAD_W_MM, 5), round(p['y'] / SCENE_H_MM, 5)]})
-        # key: changes when the picture or the hiding places change, so the site never shows old ticks on a
-        # new picture; ?v= makes phones fetch a changed picture instead of a cached one
+            book_places.append({'id': p['find'], 'cut': p['cut'], 'x': p['x'], 'y': p['y'], 'h': p['h'],
+                                'flip': bool(p.get('flip'))})
+        slots = sd.get('slots', [])
+        # key: changes when the picture, the hiding places or the spots change, so the site never shows old
+        # ticks on a new picture; ?v= makes phones fetch a changed picture instead of a cached one
         spec = json.dumps({'scene': sd['scene'], 'trim': [sd.get('trim_top', 1.0), sd.get('trim_left', 0.5)],
-                           'places': sd.get('places', [])}, sort_keys=True)
+                           'places': sd.get('places', []), 'slots': slots}, sort_keys=True)
         key = f'{n}-' + hashlib.md5(spec.encode()).hexdigest()[:6]
         data['spreads'].append({'n': n, 'key': key, 'title': sd['title'],
                                 'img': f"scenes/s{n:02d}.webp?v={file_ver(os.path.join(out, 'scenes', f's{n:02d}.webp'))}",
                                 'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
-                                'w': wpx, 'h': hpx, 'finds': boxes})
+                                'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': slots})
         kb = os.path.getsize(os.path.join(out, 'scenes', f's{n:02d}.webp')) // 1024
-        print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {wpx} x {hpx} px, {kb} KB')
+        print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {len(slots)} spots for new rounds, {wpx} x {hpx} px, {kb} KB')
     with open(os.path.join(out, 'data.json'), 'w', encoding='utf-8') as fh:
         json.dump(data, fh, ensure_ascii=False, separators=(',', ':'))
     print(f'saved {out}/data.json')
@@ -767,8 +932,15 @@ def main():
     s.add_argument('--spacing', type=float, default=55); s.add_argument('--seed', type=int, default=0)
     s.add_argument('--no-balance', dest='balance', action='store_false'); s.set_defaults(fn=cmd_spots)
     wb = sub.add_parser('web'); wb.add_argument('--out', default=os.path.join('website', 'upload'))
-    wb.add_argument('--width', type=int, default=3200); wb.add_argument('--quality', type=int, default=80)
+    wb.add_argument('--width', type=int, default=3200); wb.add_argument('--quality', type=int, default=74)
+    wb.add_argument('--cut-height', dest='cut_height', type=int, default=400)
     wb.set_defaults(fn=cmd_web)
+    sl = sub.add_parser('slots'); sl.add_argument('n', type=int); sl.add_argument('--refs')
+    sl.add_argument('--keep'); sl.add_argument('--spacing', type=float, default=.45)
+    sl.add_argument('--person', type=int, default=18); sl.add_argument('--wide', type=int, default=8)
+    sl.add_argument('--objects', type=int, default=10)
+    sl.add_argument('--legs', type=float, default=.55); sl.add_argument('--below', type=float, default=.85)
+    sl.set_defaults(fn=cmd_slots)
     for name, fn in (('who', cmd_who), ('answers', cmd_answers), ('pdf', cmd_pdf)):
         p = sub.add_parser(name); p.set_defaults(fn=fn)
     args = ap.parse_args()
