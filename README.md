@@ -36,7 +36,7 @@ So the answer key is right by construction, and the website and the book always 
 
 The website goes one step further: it gets the pictures *empty*, plus the family cut-outs, and places everyone itself. A first play uses the book's places. **Hide everyone again** picks a new mix from a list of checked spots on each page (about 25 per page, 260 in all: feet on open ground, nobody in front, each one looked at zoomed in), with room for the grandparents' pair and smaller spots for the toys. A round is just a random seed saved on the device, so a half-finished round comes back the same after a reload.
 
-The site itself follows the monster site: **one HTML file plus pictures.** No framework, no server, no accounts, no analytics, hosted free on Cloudflare Pages. Progress lives in `localStorage` on the device. The chime is synthesised with Web Audio, so there are no sound files. Nothing anyone does leaves their phone; the only outside request is Google Fonts. The site asks search engines not to list it, and a "More to play" link at the bottom goes back to [the playroom](https://play.mikeohalloran.au/), carrying the `?for=` name along.
+The site itself follows the monster site: **one HTML file plus pictures.** No framework, no server, no accounts, no analytics, hosted free on Cloudflare Pages. Progress lives in `localStorage` on the device. The chime is synthesised with Web Audio, so there are no sound files. Nothing anyone does in the game leaves their phone; the only outside request is Google Fonts. The one exception is a gift link, which carries the child's first name in its address (`?for=Max`): opening it, or following the "More to play" link at the bottom back to [the playroom](https://play.mikeohalloran.au/), sends that name to the site's hosting as part of the page request, and nothing else. The site asks search engines not to list it.
 
 ### Things that turned out to matter
 
@@ -67,7 +67,7 @@ The site itself follows the monster site: **one HTML file plus pictures.** No fr
 | `tools/test_site.py` | Drives the site in Chromium at phone and laptop size: every find, misses, reload, the finale, start again, zoom, drag, clues, and a new round on every page (everyone moves, nobody overlaps, every find taps, a reload keeps the round) |
 | `docs/` | Screenshot |
 
-The pictures aren't in the repo; they're the book. Everything else is.
+The pictures aren't in the repo; they're the book. Nor are `scenes.json` (where every hiding place lives, so it would give the answers away) and the `website/` output folder, so `hide.py` and `make_site.py` won't run from a clean clone; `index.html` is the built result and is complete. The tools, prompts and tests are all here.
 
 ## Running it locally
 
