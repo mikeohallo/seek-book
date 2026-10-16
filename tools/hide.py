@@ -548,7 +548,8 @@ PROPS = {'prop_boxes': (.50, True, False, False), 'prop_plant': (.62, False, Fal
 PAGE_PROPS = {1: ['prop_boxes', 'prop_presents', 'prop_plant'], 2: ['prop_plant', 'prop_boxes'], 3: ['prop_bush', 'prop_crate'],
               4: ['prop_boxes', 'prop_crate', 'prop_plant'], 5: ['prop_plant', 'prop_bush'],
               6: ['prop_suitcases', 'prop_plant', 'prop_boxes'], 7: ['prop_bush', 'prop_crate', 'prop_plant'],
-              8: ['prop_boxes', 'prop_plant'], 9: ['prop_bush', 'prop_crate'], 10: ['prop_presents', 'prop_bush']}
+              8: ['prop_boxes', 'prop_plant'], 9: ['prop_bush', 'prop_crate'], 10: ['prop_presents', 'prop_bush'],
+              11: ['prop_crate', 'prop_bush', 'prop_boxes']}
 # Lookalikes (sheets decoys_a/b/c, 16 Oct 2026): (cut-out, the find they look like, height share, kind of spot).
 # People: the find's own height, nudged by head size against the find's standing cut-out (kept within 8%:
 # a side-on head reads narrower). Toys: the shoes and the lying doll as wide as the real ones, the bear and
@@ -647,7 +648,8 @@ def cmd_slots(args):
         slots N --refs "x,y x,y ..."     floor colours to treat as open ground (saved in scenes.json)
         slots N --keep "1,4,7"           keep these candidates (numbers from the review sheets)
     Candidates: the feet and a strip just below them are on open ground (nobody in front), spots at
-    least --spacing x A apart, clear of the coil and the edges."""
+    least --spacing x A apart, clear of the coil and the edges (--web-only: the coil doesn't matter, for
+    pages made for the website only)."""
     book = load_book(); sd = spread_def(book, args.n)
     n = int(sd['n']); cand_path = os.path.join('preview', f'slots_{n:02d}.json')
     sp = render_spread(book, sd, with_finds=False)
@@ -691,7 +693,7 @@ def cmd_slots(args):
         cut = load_cut(cut_name); h = share * A; w = h * cut.width / cut.height
         cands = []
         for x in np.arange(MARGIN + 4 + w / 2, SPREAD_W_MM - MARGIN - 4 - w / 2, 1.0):
-            if x + w / 2 > PAGE_W_MM - FIND_CLEAR and x - w / 2 < PAGE_W_MM + FIND_CLEAR:
+            if not args.web_only and x + w / 2 > PAGE_W_MM - FIND_CLEAR and x - w / 2 < PAGE_W_MM + FIND_CLEAR:
                 continue
             for y in np.arange(h + 3, SCENE_H_MM - 3, 1.0):
                 if k == 'o':
@@ -736,7 +738,7 @@ def file_ver(path):
 
 def cmd_web(args):
     """Export the website's pictures and data from scenes.json into OUT (default website/upload):
-    scenes/sNN.webp (the empty spread, 3200 px wide), thumbs/sNN.webp (640 px, also empty, so the home
+    scenes/sNN.webp (the empty spread, 3200 px wide), thumbs/sNN.webp (480 px, also empty, so the home
     page gives nothing away), cuts/<name>.webp (every cut-out, 360 px tall), portraits/<id>.webp (the
     key portraits, 240 px) and data.json. The site places the family on the empty picture itself:
     the book's places on a first play, and a new mix of the spread's checked spots on "Hide everyone
@@ -791,7 +793,7 @@ def cmd_web(args):
         sp = render_spread(book, sd, with_finds=False)       # the empty picture: the site adds the family
         wpx = args.width; hpx = round(sp.height * wpx / sp.width)
         sp.resize((wpx, hpx), Image.LANCZOS).save(os.path.join(out, 'scenes', f's{n:02d}.webp'), quality=args.quality, method=6)
-        sp.resize((640, round(sp.height * 640 / sp.width)), Image.LANCZOS).save(
+        sp.resize((480, round(sp.height * 480 / sp.width)), Image.LANCZOS).save(
             os.path.join(out, 'thumbs', f's{n:02d}.webp'), quality=72, method=6)
         boxes, book_places = [], []
         for p in sd.get('places', []):
@@ -1054,7 +1056,7 @@ def main():
     s.add_argument('--spacing', type=float, default=55); s.add_argument('--seed', type=int, default=0)
     s.add_argument('--no-balance', dest='balance', action='store_false'); s.set_defaults(fn=cmd_spots)
     wb = sub.add_parser('web'); wb.add_argument('--out', default=os.path.join('website', 'upload'))
-    wb.add_argument('--width', type=int, default=3200); wb.add_argument('--quality', type=int, default=72)
+    wb.add_argument('--width', type=int, default=3200); wb.add_argument('--quality', type=int, default=70)
     wb.add_argument('--cut-height', dest='cut_height', type=int, default=360)
     wb.set_defaults(fn=cmd_web)
     sl = sub.add_parser('slots'); sl.add_argument('n', type=int); sl.add_argument('--refs')
@@ -1062,6 +1064,7 @@ def main():
     sl.add_argument('--person', type=int, default=18); sl.add_argument('--wide', type=int, default=8)
     sl.add_argument('--objects', type=int, default=10)
     sl.add_argument('--legs', type=float, default=.55); sl.add_argument('--below', type=float, default=.85)
+    sl.add_argument('--web-only', dest='web_only', action='store_true')
     sl.set_defaults(fn=cmd_slots)
     for name, fn in (('who', cmd_who), ('answers', cmd_answers), ('pdf', cmd_pdf)):
         p = sub.add_parser(name); p.set_defaults(fn=fn)

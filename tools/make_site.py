@@ -59,7 +59,7 @@ if scenes:
     s = 1200 / im.width
     im = im.resize((1200, round(im.height * s)), Image.LANCZOS)
     top = max(0, (im.height - 630) // 2)
-    im.crop((0, top, 1200, top + 630)).save(os.path.join(UP, 'share.jpg'), quality=80)  # quality keeps the upload under the 10 MB the browser hand-off takes
+    im.crop((0, top, 1200, top + 630)).save(os.path.join(UP, 'share.jpg'), quality=74)  # quality keeps the upload under the 10 MB the browser hand-off takes
 
 zpath = os.path.join('website', 'seek_upload.zip')
 n = 0
