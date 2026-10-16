@@ -267,8 +267,8 @@ let DATA = null;
 // ------------------------------------------------------------- storage ----
 const KEY = 'seek-book.v1';
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, sound: d.sound !== false, owner: d.owner || null }; }
-  catch (e) { return { found: {}, rounds: {}, done: {}, sound: true, owner: null }; }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null }; }
+  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null }; }
 }
 const store = load();
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
@@ -315,7 +315,8 @@ function shuffled(sp, seed) {
   for (const id of ids) {
     const poses = DATA.poses[id], pose = poses[Math.floor(r() * poses.length)];
     const free = slots.filter(s => pose.k.includes(s.k) && !used.some(u => u.s === s))
-      .map(s => { const h = Math.round(Math.max(pose.f * s.H, (pose.m || 0) * A) * 10) / 10; return { s, h, box: boxOf({ cut: pose.cut, x: s.x, y: s.y, h }) }; });
+      .map(s => { const h = Math.round(Math.max(pose.f * s.H, (pose.m || 0) * A) * 10) / 10; return { s, h, box: boxOf({ cut: pose.cut, x: s.x, y: s.y, h }) }; })
+      .filter(c => inside(c.box));
     const clear = free.filter(c => !used.some(u => meets(u.box, c.box)));
     const roomy = clear.filter(c => used.every(u => Math.hypot(u.s.x - c.s.x, u.s.y - c.s.y) > A * 1.1));
     // people use one-person spots before wide ones, so the pair always has somewhere to go
@@ -329,23 +330,119 @@ function shuffled(sp, seed) {
   }
   return out;
 }
-function layout(sp, seed) {
-  const places = seed && sp.slots && sp.slots.length ? shuffled(sp, seed) : sp.book.map(p => ({ ...p }));
+// Harder rounds. The second new round on a page is level 2, the third and later level 3 (a page's level
+// goes back to 1 with "Start this page again"). Lookalikes join the crowd (strangers who match a find in
+// all but one or two things: the girl's hair in a yellow T-shirt, Dad's beard with no tattoo), and some of
+// the family sit down or hide behind something added to the picture (a bush, a plant, a stack of boxes,
+// chosen to suit the page), standing behind it or peeking over the top, so only their top half shows.
+const LEVELS = { 2: { decoys: 3, hide: 2, extra: 0, sit: 1, decoyHide: 0 }, 3: { decoys: 6, hide: 3, extra: .5, sit: 2, decoyHide: 1 } };
+const PEOPLE = ['grandparents', 'girl', 'dad', 'mum', 'grandma', 'uncle'];
+const levelOf = n => store.lv[K(n)] || 1;
+const mmBox = (cut, x, yb, h) => { const [MW, MH] = DATA.mm, w = h * DATA.cuts[cut].a; return [(x - w / 2) / MW, (yb - h) / MH, (x + w / 2) / MW, yb / MH]; };
+const inside = b => b[0] >= 0 && b[1] >= 0 && b[2] <= 1 && b[3] <= 1;     // nobody poking off the picture
+const union = (a, b) => b ? [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])] : a;
+// one figure at a spot: plain, sitting, behind a prop, or peeking over a flat-topped prop.
+// Returns the picture box (ibox), the part you can see and tap (box), the prop, and everything together (ubox).
+function unit(pose, mode, s, prop, g = 1) {
+  const MH = DATA.mm[1], H = s.H;
+  const h = Math.max(pose.f * H, (pose.m || 0) * s.A), ibox = mmBox(pose.cut, s.x, s.y, h);
+  if (mode === 'plain') return { cut: pose.cut, x: s.x, y: s.y, h, ibox, box: ibox, ubox: ibox };
+  const w = h * DATA.cuts[pose.cut].a;
+  let ph = prop.f * H * Math.min(1, g);                         // smaller things hide behind smaller props
+  ph = Math.max(ph, w * 1.12 / DATA.cuts[prop.cut].a);          // wide enough to hide them
+  if (ph > .72 * H) return null;
+  const pb = s.y + .04 * H, pt = pb - ph, pbox = mmBox(prop.cut, s.x, pb, ph);
+  let fb = s.y;
+  if (mode === 'peek') fb = pt + .1 * h;                       // hands on the top edge, the rest behind
+  const fbox = mmBox(pose.cut, s.x, fb, h);
+  const box = [fbox[0], fbox[1], fbox[2], pt / MH + .004];
+  if ((box[3] - box[1]) * MH < .28 * h) return null;           // too little showing
+  return { cut: pose.cut, x: s.x, y: fb, h, ibox: fbox, box, ubox: union(fbox, pbox), prop: { cut: prop.cut, ibox: pbox } };
+}
+function hardRound(sp, seed, lv) {
+  const r = rng(seed ^ 0x5bd1e995), A = sp.A, L = LEVELS[lv], HD = DATA.hard;
+  const slots = sp.slots.map(([x, y, k, H, g]) => ({ x, y, k, H: H || A, A, g: !!g }));
+  const props = (sp.pr || []).map(n => HD.props[n]).filter(Boolean).map(p => ({ ...p, used: 0, o: r() }));
+  const pick = (arr, k) => { const a = arr.slice(), out = []; while (out.length < k && a.length) out.push(a.splice(Math.floor(r() * a.length), 1)[0]); return out; };
+  // the prop for a spot: one that suits it (a bush only on grass), the least used so far, so a round mixes them
+  const propAt = (s, flat, wide) => props.filter(p => (!flat || p.flat) && (!wide || p.wide) && (!p.grass || s.g))
+    .sort((a, b) => a.used - b.used || a.o - b.o)[0] || null;
+  const ids = sp.finds.map(f => f.id);
+  const people = PEOPLE.filter(id => ids.includes(id));
+  // who hides behind something and who sits down
+  const canHide = props.length ? people.filter(id => id !== 'grandparents' || props.some(p => p.wide)) : [];
+  const hidden = new Set(pick(canHide, L.hide + (r() < L.extra ? 1 : 0)));
+  if (lv >= 3 && props.some(p => p.flat) && ids.includes('unicorn') && r() < .5) hidden.add('unicorn');
+  const sitting = new Set(pick(people.filter(id => !hidden.has(id)), L.sit));
+  const rank = id => ({ w: 0, pw: 1, o: 2 })[DATA.poses[id][0].k];
+  const order = ids.map(id => [rank(id), r(), id]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(v => v[2]);
+  const used = [], out = [], decoys = [];
+  function place(specs, kinds) {
+    // specs: ways to show this one, best first ([pose, mode, flat-topped prop?, wide prop?, size]); the placed unit or null
+    for (const [pose, mode, flat, wide, g] of specs) {
+      const free = slots.filter(s => kinds.includes(s.k) && !used.some(u => u.s === s))
+        .map(s => { const prop = mode === 'plain' ? null : propAt(s, flat, wide);
+          return { s, prop, u: mode === 'plain' || prop ? unit(pose, mode, s, prop, g) : null }; })
+        .filter(c => c.u && inside(c.u.ubox));
+      const clear = free.filter(c => !used.some(o => meets(o.u.ubox, c.u.ubox)));
+      const roomy = clear.filter(c => used.every(o => Math.hypot(o.s.x - c.s.x, o.s.y - c.s.y) > A * 1.1));
+      const pool = roomy.length ? roomy : clear;
+      const pref = pool.filter(c => c.s.k === kinds[0]);
+      const from = pref.length ? pref : pool;
+      if (!from.length) continue;
+      const c = from[Math.floor(r() * from.length)];
+      used.push(c);
+      if (c.prop) c.prop.used++;
+      return { ...c.u, flip: pose.flip && r() < .5 };
+    }
+    return null;
+  }
+  for (const id of order) {
+    const poses = DATA.poses[id], pose = poses[Math.floor(r() * poses.length)], kinds = pose.k, g = poses[0].f;
+    const pair = id === 'grandparents', specs = [];
+    if (hidden.has(id)) {
+      const peek = HD.peek[id];
+      if (peek && props.some(p => p.flat) && (id === 'unicorn' || r() < .4)) specs.push([peek, 'peek', true, pair, g]);
+      if (id !== 'unicorn') specs.push([pose, 'behind', false, pair, g]);
+    } else if (sitting.has(id) && HD.sit[id]) specs.push([HD.sit[id], 'plain']);
+    specs.push([pose, 'plain']);
+    const u = place(specs, kinds);
+    out.push(u ? { id, ...u } : { ...sp.book.find(p => p.id === id), ibox: null });
+  }
+  // the lookalikes, in spots nobody is using; at level 3 one of them hides behind something too
+  let decoyHides = props.length ? L.decoyHide : 0;
+  for (const d of pick(HD.decoys, L.decoys)) {
+    const specs = [];
+    if (decoyHides > 0 && d.k !== 'o') specs.push([d, 'behind', false, d.k === 'w', d.f]);
+    specs.push([d, 'plain']);
+    const u = place(specs, d.k === 'w' ? 'w' : d.k === 'o' ? 'o' : 'pw');
+    if (u) { if (u.prop) decoyHides--; decoys.push({ like: d.like, ...u }); }
+  }
+  return { finds: out, decoys };
+}
+function layout(sp, seed, lv = 1) {
+  let places, decoys = [];
+  if (seed && lv > 1 && sp.slots && sp.slots.length && DATA.hard) ({ finds: places, decoys } = hardRound(sp, seed, lv));
+  else places = seed && sp.slots && sp.slots.length ? shuffled(sp, seed) : sp.book.map(p => ({ ...p }));
   const byId = Object.fromEntries(places.map(p => [p.id, p]));
-  return sp.finds.map(f => ({ ...byId[f.id], box: boxOf(byId[f.id]) }));     // the key's order
+  const finds = sp.finds.map(f => { const p = byId[f.id], b = p.ibox ? p.box : boxOf(p); return { ...p, box: b, ibox: p.ibox || b }; });   // the key's order
+  finds.decoys = decoys;
+  return finds;
 }
 function newRound(n) {
-  // a seed that moves everyone well away from where they are now
-  const sp = DATA.spreads.find(s => s.n === n), now = layout(sp, roundOf(n));
+  // a seed that moves everyone well away from where they are now; each new round on a page is a bit harder
+  const sp = DATA.spreads.find(s => s.n === n), now = layout(sp, roundOf(n), levelOf(n));
+  const plays = (store.plays[K(n)] ?? (store.rounds[K(n)] ? 1 : 0)) + 1;
+  const lv = plays >= 3 ? 3 : plays >= 2 ? 2 : 1;
   let best = null, bestMoved = -1;
   for (let t = 0; t < 40; t++) {
     const seed = 1 + Math.floor(Math.random() * 2147483646);
-    const next = layout(sp, seed);
+    const next = layout(sp, seed, lv);
     const moved = next.filter((p, i) => Math.hypot(p.x - now[i].x, p.y - now[i].y) > sp.A * .6).length;
     if (moved > bestMoved) { best = seed; bestMoved = moved; }
     if (moved === next.length) break;
   }
-  store.rounds[K(n)] = best; delete store.found[K(n)]; persist();
+  store.rounds[K(n)] = best; store.plays[K(n)] = plays; store.lv[K(n)] = lv; delete store.found[K(n)]; persist();
 }
 
 // --------------------------------------------------------------- title ----
@@ -450,7 +547,7 @@ function renderHome() {
       const a = document.createElement('button'); a.className = 'again'; a.textContent = 'Start this page again';
       a.addEventListener('click', () => {
         if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = 'Tap again to clear it'; setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
-        againArmed = null; delete store.found[K(sp.n)]; delete store.rounds[K(sp.n)]; persist(); renderHome();
+        againArmed = null; for (const k of ['found', 'rounds', 'plays', 'lv']) delete store[k][K(sp.n)]; persist(); renderHome();
       });
       wrap.append(a);
     }
@@ -590,7 +687,12 @@ function tap(px, py) {
       if (d < bestD) { bestD = d; best = f; }
     }
   }
-  if (!best) { miss(px, py); return; }
+  if (!best) {
+    // a lookalike: close, but not who it looks like
+    const d = (page.decoys || []).find(q => { const b = padded(q); return Math.abs(ix - b.cx) <= b.hw * .8 && Math.abs(iy - b.cy) <= b.hh * .8; });
+    if (d) { say(`Nearly! That's not ${DATA.byId[d.like].say}.`); bumpFace(d.like); return; }
+    miss(px, py); return;
+  }
   if (got.has(best.id)) { say(`You already found ${DATA.byId[best.id].say}!`); bumpFace(best.id); return; }
   found(best, px, py);
 }
@@ -702,7 +804,8 @@ function openPage(n, after) {
   const sp = DATA.spreads.find(s => s.n === n); if (!sp) return;
   // a page she has already finished opens straight into a new round: same picture, everyone somewhere new
   if (finished(n)) { newRound(n); after = after || (() => say("Everyone's hiding again!")); }
-  page = { ...sp, finds: layout(sp, roundOf(n)) };
+  const finds = layout(sp, roundOf(n), levelOf(n));
+  page = { ...sp, finds, decoys: finds.decoys };
   $('home').hidden = true; $('play').hidden = false; $('finale').hidden = true;
   rainbow($('playTitle'), page.title, n);
   stage.setAttribute('aria-label', `${page.title}: a busy picture with ${page.finds.length} things to find`);
@@ -714,7 +817,12 @@ function openPage(n, after) {
   $('loading').hidden = false; layer.style.visibility = 'hidden';
   layer.querySelectorAll('img.fam').forEach(e => e.remove());
   const token = ++openToken;
-  let pending = 1 + page.finds.length;
+  const pics = [];       // figures, then whatever is in front of each one
+  for (const f of [...page.finds, ...page.decoys]) {
+    pics.push({ cut: f.cut, box: f.ibox, flip: f.flip, cls: f.like ? ' decoy' : '' });
+    if (f.prop) pics.push({ cut: f.prop.cut, box: f.prop.ibox, cls: ' prop' });
+  }
+  let pending = 1 + pics.length;
   const ready = () => {
     if (token !== openToken || --pending > 0) return;
     $('loading').hidden = true; layer.style.visibility = '';
@@ -722,8 +830,8 @@ function openPage(n, after) {
     for (const f of page.finds) if (foundIn(n).has(f.id)) drawRing(f, false);
     if (after) after();
   };
-  for (const f of page.finds) {
-    const e = document.createElement('img'); e.className = 'fam' + (f.flip ? ' flip' : ''); e.alt = ''; e.draggable = false;
+  for (const f of pics) {
+    const e = document.createElement('img'); e.className = 'fam' + (f.flip ? ' flip' : '') + f.cls; e.alt = ''; e.draggable = false;
     const [x0, y0, x1, y1] = f.box;
     Object.assign(e.style, { left: x0 * page.w + 'px', top: y0 * page.h + 'px', width: (x1 - x0) * page.w + 'px', height: (y1 - y0) * page.h + 'px' });
     e.onload = e.onerror = ready;
@@ -780,6 +888,7 @@ fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.js
   for (const k of Object.keys(store.found)) if (!keep.has(k)) { delete store.found[k]; pruned = true; }
   for (const k of Object.keys(store.rounds)) if (!keep.has(k)) { delete store.rounds[k]; pruned = true; }
   for (const k of Object.keys(store.done)) if (!keep.has(k)) { delete store.done[k]; pruned = true; }
+  for (const k of ['plays', 'lv']) for (const q of Object.keys(store[k])) if (!keep.has(q)) { delete store[k][q]; pruned = true; }
   for (const sp of DATA.spreads) if (finished(sp.n) && !store.done[K(sp.n)]) { store.done[K(sp.n)] = 1; pruned = true; }   // stars from before
   if (pruned) persist();
   renderHome();
