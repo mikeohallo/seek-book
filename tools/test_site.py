@@ -9,6 +9,8 @@ the zoom buttons and mouse wheel zoom, a drag never counts as a tap, holding a f
 nothing scrolls sideways, and the page throws no errors.
 Hide everyone again (on every page): the family moves, nobody overlaps, every find in the new round
 can be tapped, a reload keeps the round, and Start this page again puts everyone back in the book's places.
+Coming back: a finished page opens straight into a new round and keeps its star on the home page, and a
+page finished before stars were saved separately still gets its star and a new round.
 """
 import asyncio, json, os, subprocess, sys, time
 from playwright.async_api import async_playwright
@@ -146,11 +148,63 @@ async def rounds(name, viewport, touch):
         await b.close()
 
 
+async def reopen(name, viewport, touch):
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx = await b.new_context(viewport=viewport, has_touch=touch, is_mobile=touch, device_scale_factor=1)
+        page = await ctx.new_page()
+        errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        tap = page.touchscreen.tap if touch else page.mouse.click
+        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        # finish page 1 in the book's places, then go home
+        await page.locator('.page-card').first.click(); await page.wait_for_function("document.getElementById('loading').hidden")
+        book = await fam(page)
+        await tap_all(page, tap); await page.wait_for_timeout(1500)
+        assert await page.is_visible('#finale'), 'no finale on page 1'
+        await page.click('#finHome'); await page.wait_for_timeout(300)
+        card = page.locator('.page-card').first
+        assert await card.locator('.star').count() == 1, 'no star after finishing'
+        # tapping the finished page starts a new round straight away
+        await card.click(); await page.wait_for_function("document.getElementById('loading').hidden"); await page.wait_for_timeout(200)
+        new = await fam(page)
+        moved = sum(1 for a, c in zip(book, new) if abs(a[0] - c[0]) + abs(a[1] - c[1]) > 20)
+        assert moved >= len(new) - 1, f'reopened page: only {moved} moved'
+        assert await page.text_content('#count') == f'0/{len(new)}', 'reopened page did not start empty'
+        assert 'hiding again' in (await page.text_content('#say') or ''), 'no "hiding again" message'
+        await page.reload(); await page.wait_for_function("document.getElementById('loading').hidden")
+        assert await fam(page) == new, 'reload changed the new round'
+        await page.click('#back'); await page.wait_for_timeout(300)
+        card = page.locator('.page-card').first
+        assert await card.locator('.star').count() == 1, 'star lost after the new round started'
+        assert (await card.locator('.dots b').text_content()).startswith('0 of'), 'card does not show the new round'
+        # a phone that finished page 2 before stars were saved: star kept, and a new round on opening
+        sp = DATA['spreads'][1]
+        await page.evaluate(OLD_FINISH, [sp['key'], [f['id'] for f in sp['finds']]])
+        await page.reload(); await page.wait_for_selector('.page-card')
+        card = page.locator('.page-card').nth(1)
+        assert await card.locator('.star').count() == 1, 'old finished page lost its star'
+        await card.click(); await page.wait_for_function("document.getElementById('loading').hidden"); await page.wait_for_timeout(200)
+        assert await page.text_content('#count') == f"0/{len(sp['finds'])}", 'old finished page did not start a new round'
+        boxes = await page.evaluate('page.finds.map(f => f.box)')
+        assert not all(abs(a - c) < 2e-4 for bx, f in zip(boxes, sp['finds']) for a, c in zip(bx, f['box'])), 'old finished page reopened in the book places'
+        assert not errs, errs
+        print(f'{name}: coming back checks passed')
+        await b.close()
+
+
+# progress as an older version of the site saved it: the page's finds all found, no separate star
+OLD_FINISH = """([k, ids]) => { const d = JSON.parse(localStorage.getItem('seek-book.v1') || '{}');
+    d.found = d.found || {}; d.found[k] = ids; if (d.done) delete d.done[k]; if (d.rounds) delete d.rounds[k];
+    localStorage.setItem('seek-book.v1', JSON.stringify(d)); }"""
+
+
 async def main():
     if '--rounds-only' not in sys.argv:
         await run('phone 390 x 760', {'width': 390, 'height': 760}, True)
         await run('laptop 1280 x 800', {'width': 1280, 'height': 800}, False)
     await rounds('phone 390 x 760', {'width': 390, 'height': 760}, True)
+    await reopen('phone 390 x 760', {'width': 390, 'height': 760}, True)
 
 if __name__ == '__main__':
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT],
