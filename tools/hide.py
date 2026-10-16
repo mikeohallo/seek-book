@@ -551,7 +551,9 @@ PAGE_PROPS = {1: ['prop_boxes', 'prop_presents', 'prop_plant'], 2: ['prop_plant'
               8: ['prop_boxes', 'prop_plant'], 9: ['prop_bush', 'prop_crate'], 10: ['prop_presents', 'prop_bush'],
               11: ['prop_crate', 'prop_bush', 'prop_boxes'], 12: ['prop_bush', 'prop_crate', 'prop_plant'],
               13: ['prop_crate', 'prop_boxes'], 14: ['prop_bush', 'prop_plant', 'prop_crate'],
-              15: ['prop_boxes', 'prop_plant', 'prop_crate']}
+              15: ['prop_boxes', 'prop_plant', 'prop_crate'], 16: ['prop_suitcases', 'prop_plant', 'prop_boxes'],
+              17: ['prop_bush', 'prop_plant', 'prop_presents'], 18: ['prop_boxes', 'prop_crate', 'prop_plant'],
+              19: ['prop_crate', 'prop_boxes']}
 # Lookalikes (sheets decoys_a/b/c, 16 Oct 2026): (cut-out, the find they look like, height share, kind of spot).
 # People: the find's own height, nudged by head size against the find's standing cut-out (kept within 8%:
 # a side-on head reads narrower). Toys: the shoes and the lying doll as wide as the real ones, the bear and
