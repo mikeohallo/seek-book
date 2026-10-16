@@ -487,7 +487,7 @@ def cmd_spots(args):
 # On the website, "Hide everyone again" puts the family in new places. Each spread lists checked spots
 # ("slots": feet position x, y in spread mm and a kind), and the site picks a fresh mix for every round.
 # Kinds: p = room for one person, w = wide enough for the grandparents (also fits one person),
-# o = a toy on the ground. Sizes scale with the spread's adult height A (Dad's height in the book).
+# o = a toy on the ground. Sizes on the website come from the crowd at each spot's depth (WEB_SIZE below).
 ROUND_POSES = {     # find: [(cut, height as a share of A, may be mirrored)]; Dad is never mirrored
     'girl': [('girl_walk', .70, True), ('girl_stand', .70, True)],
     'dad': [('dad_stand', 1.0, False), ('dad_walk', 1.0, False)],
@@ -500,10 +500,51 @@ ROUND_POSES = {     # find: [(cut, height as a share of A, may be mirrored)]; Da
     'unicorn': [('obj_unicorn_stand', .32, True)],
 }
 ROUND_KINDS = {'grandparents': 'w', 'shoes': 'o', 'teddy': 'o', 'unicorn': 'o'}   # others: 'pw'
+# Sizes on the website (16 Oct). Mike, after the girl had played every page: the grown-ups look a little big
+# next to the people in the pictures, the ballet shoes and the unicorn a little small. Measuring the crowd
+# showed why: most scenes have perspective (people further up the picture are smaller), but the book used
+# one size per find per page, and new rounds one size for every spot. So each spread now lists `crowd`:
+# [y, height] points, the height of a grown-up in the crowd with feet at y (spread mm), measured on 5 to 15
+# grown-ups per page (and children where there were no grown-ups), joined by straight lines and flat past
+# the ends. Every find on the website is sized from it: WEB_SIZE is each cut-out's height as a share of a
+# crowd grown-up at the same depth. Grown-ups match the crowd (Dad and the uncle 1.0, the others their book
+# share of Dad's height); the girl keeps her book share of Dad's height (crowd children vary too much to
+# measure against); the doll, the shoes and the unicorn keep their book size relative to the crowd on
+# average (the median over the ten pages), the shoes and unicorn 30% bigger than that. Used for the book's places and for new rounds. Sizes
+# are not part of a page's key, so changing them keeps every device's ticks and rounds. Hanging things
+# keep their top where it is (the hook).
+WEB_SIZE = {
+    'dad_stand': 1.0, 'dad_walk': 1.0, 'uncle_stand': 1.0, 'uncle_walk': 1.0,
+    'mum_walk': .96, 'mum_stand': .96, 'mum_sit': .73,
+    'grandma_stand': .93, 'grandma_walk': .93,
+    'grandparents_walk': .96, 'grandparents_stand': .96,
+    'girl_walk': .74, 'girl_stand': .74,                  # her book share of Dad's height
+    'obj_teddy_sit': .34, 'obj_teddy_lie': .32,
+    'obj_unicorn_stand': .49, 'obj_unicorn_peek': .46,      # 1.3 x the book's median (.38 and .35)
+    'obj_shoes_flat': .30, 'obj_shoes_hang': .44,            # 1.3 x the book's median (.23 and .34)
+}
+# The toys are never smaller than in the book: at least this many times their book size (book places), or
+# their book share of Dad's book height A (new rounds). Mike asked for bigger shoes and unicorn, and on the
+# pages where the grown-ups shrink a lot (the airport, the party) the crowd rule alone would shrink them.
+OBJ_GROW = {'shoes': 1.3, 'unicorn': 1.3, 'teddy': 1.0}
+HANGING = {'obj_shoes_hang'}
 SLOT_TEST = {'p': ('uncle_walk', 1.0), 'w': ('grandparents_walk', .96), 'o': ('obj_teddy_lie', .27)}
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
+
+def crowd_h(sd, y):
+    """Height of a grown-up in the crowd with feet at y (spread mm): the spread's `crowd` points joined by
+    straight lines, flat past the ends. Spreads without `crowd` fall back to Dad's height in the book."""
+    pts = sorted(sd.get('crowd') or [])
+    if not pts:
+        return adult_h(sd)
+    if y <= pts[0][0]:
+        return pts[0][1]
+    for (y0, h0), (y1, h1) in zip(pts, pts[1:]):
+        if y <= y1:
+            return h0 + (h1 - h0) * (y - y0) / (y1 - y0)
+    return pts[-1][1]
 
 def floor_mask(sp, refs, res=4, tol=22):
     """Open ground at `res` px per mm: close to one of the floor colours sampled at `refs`
@@ -527,13 +568,19 @@ def place_on(sp, items):
         can.alpha_composite(cut, (int(round(mm(x) - cut.width / 2)), int(round(mm(y) - cut.height))))
     return can.convert('RGB')
 
-def slot_sheet(sp, slots, A, out, label_from=0):
+def test_h(sd, k, y):
+    """Height of the stand-in figure for a spot of kind k at depth y: as on the website when the spread
+    has crowd heights, else a share of Dad's book height."""
+    cut_name, share = SLOT_TEST[k]
+    return WEB_SIZE[cut_name] * crowd_h(sd, y) if sd.get('crowd') else share * adult_h(sd)
+
+def slot_sheet(sp, sd, slots, out, label_from=0):
     """Review sheet: every slot with its test figure in place, cropped and numbered."""
     f = ImageFont.truetype(NUNITO, 30) if os.path.exists(NUNITO) else ImageFont.load_default()
     tiles = []
     for i, (x, y, k) in enumerate(slots):
-        cut_name, share = SLOT_TEST[k]
-        h = share * A; w = h * load_cut(cut_name).width / load_cut(cut_name).height
+        cut_name = SLOT_TEST[k][0]
+        h = test_h(sd, k, y); w = h * load_cut(cut_name).width / load_cut(cut_name).height
         im = place_on(sp, [(cut_name, x, y, h, False)])
         box = (mm(x - w / 2 - max(w * .8, h * .45)), mm(y - h * 1.35), mm(x + w / 2 + max(w * .8, h * .45)), mm(y + h * .4))
         t = im.crop(box); t = t.resize((360, round(t.height * 360 / t.width)), Image.LANCZOS)
@@ -566,7 +613,7 @@ def cmd_slots(args):
         save_book(book)
         kinds = {k: sum(1 for s in sd['slots'] if s[2] == k) for k in 'pwo'}
         print(f'spread {n}: {len(sd["slots"])} slots kept {kinds}')
-        marks = place_on(sp, [(SLOT_TEST[k][0], x, y, SLOT_TEST[k][1] * A, False) for x, y, k in sd['slots']])
+        marks = place_on(sp, [(SLOT_TEST[k][0], x, y, test_h(sd, k, y), False) for x, y, k in sd['slots']])
         marks.resize((marks.width // 3, marks.height // 3), Image.LANCZOS).save(os.path.join('preview', f'slots_{n:02d}_all.jpg'), quality=85)
         return
     if args.refs:
@@ -622,8 +669,8 @@ def cmd_slots(args):
     os.makedirs('preview', exist_ok=True)
     json.dump(out, open(cand_path, 'w', encoding='utf-8'))
     half = math.ceil(len(out) / 2)
-    slot_sheet(sp, out[:half], A, os.path.join('preview', f'slots_{n:02d}_a.jpg'), 0)
-    slot_sheet(sp, out[half:], A, os.path.join('preview', f'slots_{n:02d}_b.jpg'), half)
+    slot_sheet(sp, sd, out[:half], os.path.join('preview', f'slots_{n:02d}_a.jpg'), 0)
+    slot_sheet(sp, sd, out[half:], os.path.join('preview', f'slots_{n:02d}_b.jpg'), half)
 
 def rng_jitter(x, y):
     """A fixed pseudo-random number in [0, 1) per position, so ties don't all cluster in one corner."""
@@ -642,7 +689,9 @@ def cmd_web(args):
     key portraits, 240 px) and data.json. The site places the family on the empty picture itself:
     the book's places on a first play, and a new mix of the spread's checked spots on "Hide everyone
     again". data.json holds the finds, the poses allowed in new rounds, each cut-out's shape, and per
-    spread the adult height A, the book's places, their boxes as fractions of the picture, and the spots."""
+    spread the adult height A, the book's places, their boxes as fractions of the picture, and the spots.
+    Sizes on the website follow the crowd: WEB_SIZE x crowd_h at each find's depth, for the book's places
+    and (via each spot's crowd height) for new rounds."""
     book = load_book()
     out = args.out
     for d in ('scenes', 'thumbs', 'portraits', 'cuts'):
@@ -655,8 +704,12 @@ def cmd_web(args):
         data['finds'].append({'id': fd['id'], 'label': fd['label'], 'say': fd.get('say', fd['label']),
                               'colour': '#%02X%02X%02X' % FAMILY[fd['colour']],
                               'portrait': f"portraits/{fd['id']}.webp?v={file_ver(os.path.join(out, 'portraits', fd['id'] + '.webp'))}"})
-        data['poses'][fd['id']] = [{'cut': c, 'f': f, 'flip': fl, 'k': ROUND_KINDS.get(fd['id'], 'pw')}
-                                   for c, f, fl in ROUND_POSES[fd['id']]]
+        # f: height as a share of a crowd grown-up at the spot's depth (each spot carries that height)
+        # m: the least height as a share of A (toys only, so they're never smaller than in the book)
+        g = OBJ_GROW.get(fd['id'])
+        data['poses'][fd['id']] = [dict({'cut': c, 'f': WEB_SIZE[c], 'flip': fl, 'k': ROUND_KINDS.get(fd['id'], 'pw')},
+                                        **({'m': round(share * g, 3)} if g else {}))
+                                   for c, share, fl in ROUND_POSES[fd['id']]]
     # the cut-outs: the site places the family itself (the book's places first, new ones on "Hide again")
     cut_names = sorted({p['cut'] for sd in book['spreads'] for p in sd.get('places', [])} |
                        {c for poses in ROUND_POSES.values() for c, _, _ in poses})
@@ -681,13 +734,16 @@ def cmd_web(args):
             if not p.get('find'):
                 continue
             cut = load_cut(p['cut'])
-            w = p['h'] * cut.width / cut.height
+            h = round(max(WEB_SIZE[p['cut']] * crowd_h(sd, p['y']), p['h'] * OBJ_GROW.get(p['find'], 0)), 1)
+            y = round(p['y'] - p['h'] + h, 1) if p['cut'] in HANGING else p['y']    # feet stay put; hanging keeps its top
+            w = h * cut.width / cut.height
             boxes.append({'id': p['find'],
-                          'box': [round((p['x'] - w / 2) / SPREAD_W_MM, 5), round((p['y'] - p['h']) / SCENE_H_MM, 5),
-                                  round((p['x'] + w / 2) / SPREAD_W_MM, 5), round(p['y'] / SCENE_H_MM, 5)]})
-            book_places.append({'id': p['find'], 'cut': p['cut'], 'x': p['x'], 'y': p['y'], 'h': p['h'],
+                          'box': [round((p['x'] - w / 2) / SPREAD_W_MM, 5), round((y - h) / SCENE_H_MM, 5),
+                                  round((p['x'] + w / 2) / SPREAD_W_MM, 5), round(y / SCENE_H_MM, 5)]})
+            book_places.append({'id': p['find'], 'cut': p['cut'], 'x': p['x'], 'y': y, 'h': h,
                                 'flip': bool(p.get('flip'))})
         slots = sd.get('slots', [])
+        web_slots = [[x, y, k, round(crowd_h(sd, y), 1)] for x, y, k in slots]    # + crowd height at that depth
         # key: changes when the picture, the hiding places or the spots change, so the site never shows old
         # ticks on a new picture; ?v= makes phones fetch a changed picture instead of a cached one
         spec = json.dumps({'scene': sd['scene'], 'trim': [sd.get('trim_top', 1.0), sd.get('trim_left', 0.5)],
@@ -696,7 +752,7 @@ def cmd_web(args):
         data['spreads'].append({'n': n, 'key': key, 'title': sd['title'],
                                 'img': f"scenes/s{n:02d}.webp?v={file_ver(os.path.join(out, 'scenes', f's{n:02d}.webp'))}",
                                 'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
-                                'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': slots})
+                                'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': web_slots})
         kb = os.path.getsize(os.path.join(out, 'scenes', f's{n:02d}.webp')) // 1024
         print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {len(slots)} spots for new rounds, {wpx} x {hpx} px, {kb} KB')
     with open(os.path.join(out, 'data.json'), 'w', encoding='utf-8') as fh:
