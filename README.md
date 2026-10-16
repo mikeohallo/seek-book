@@ -18,7 +18,7 @@ The website is the same book on a phone. Same pictures, same family, same hiding
 2. **Look.** Drag to move around and pinch to zoom on a phone; drag and scroll-wheel on a laptop. A phone held upright fills the screen with the picture and you pan sideways, like holding the book close.
 3. **Tap.** Find someone and they get a ring in their colour, a chime, some confetti and a tick on their face in the row along the bottom. Tap nothing and you just get a little wobble, no buzzer.
 4. **Stuck?** Press and hold a face, and a soft glow lights up roughly where they are. It's deliberately off-centre, so it narrows the search without giving the answer away.
-5. **Everyone found.** A celebration, then on to the next page, or **Hide everyone again**: the family scatter to new hiding places on the same picture, in new poses, so a page you know by heart is a new game. "Start this page again" on the home screen puts everyone back where the book has them.
+5. **Everyone found.** A celebration, then on to the next page, or **Hide everyone again**: the family scatter to new hiding places on the same picture, in new poses, so a page you know by heart is a new game. Coming back to a page you've already finished does the same straight away, and its star stays on the home screen. "Start this page again" on the home screen puts everyone back where the book has them.
 
 A gift link like `?for=Max` makes it "Max's Seek and Find" on that device.
 
@@ -65,7 +65,7 @@ The site itself follows the monster site: **one HTML file plus pictures.** No fr
 | `tools/gen.py` | Makes the character sheets and scenes with Google AI Studio's image model (needs your own API key) |
 | `tools/prompts.json` | The prompts for every character sheet and scene |
 | `tools/make_site.py` | Wraps the page for hosting (plain link says "My Seek and Find") and zips it for Cloudflare Pages |
-| `tools/test_site.py` | Drives the site in Chromium at phone and laptop size: every find, misses, reload, the finale, start again, zoom, drag, clues, and a new round on every page (everyone moves, nobody overlaps, every find taps, a reload keeps the round) |
+| `tools/test_site.py` | Drives the site in Chromium at phone and laptop size: every find, misses, reload, the finale, start again, zoom, drag, clues, and a new round on every page (everyone moves, nobody overlaps, every find taps, a reload keeps the round), and a finished page reopening as a new round with its star kept |
 | `docs/` | Screenshot |
 
 The pictures aren't in the repo; they're the book. Nor are `scenes.json` (where every hiding place lives, so it would give the answers away) and the `website/` output folder, so `hide.py` and `make_site.py` won't run from a clean clone; `index.html` is the built result and is complete. The tools, prompts and tests are all here.

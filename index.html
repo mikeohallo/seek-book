@@ -267,8 +267,8 @@ let DATA = null;
 // ------------------------------------------------------------- storage ----
 const KEY = 'seek-book.v1';
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, sound: d.sound !== false, owner: d.owner || null }; }
-  catch (e) { return { found: {}, rounds: {}, sound: true, owner: null }; }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, sound: d.sound !== false, owner: d.owner || null }; }
+  catch (e) { return { found: {}, rounds: {}, done: {}, sound: true, owner: null }; }
 }
 const store = load();
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
@@ -284,10 +284,13 @@ function ownerName() {
 // so ticks from an old version of a page never show up on a new one
 const K = n => { const s = DATA && DATA.spreads.find(s => s.n === n); return (s && s.key) || String(n); };
 const foundIn = n => new Set(store.found[K(n)] || []);
+const finished = n => { const sp = DATA.spreads.find(s => s.n === n); return !!sp && foundIn(n).size >= sp.finds.length; };
+const starred = n => !!store.done[K(n)] || finished(n);      // finished at least once: the star stays
 
 // -------------------------------------------------------------- rounds ----
 // The first play of a page puts everyone where the book has them. "Hide everyone again" starts a new
-// round: a fresh mix of the page's checked spots (data.json "slots": feet x, y in mm and a kind,
+// round, and so does opening a page that's already finished (its star stays on the home page):
+// a fresh mix of the page's checked spots (data.json "slots": feet x, y in mm and a kind,
 // p = one person, w = room for the pair, o = a toy, and H = the height of a grown-up in the crowd at that
 // depth, so everyone is sized like the people around them; toys never smaller than their book size,
 // pose.m x A), new poses, some mirrored (never Dad).
@@ -430,10 +433,10 @@ function renderHome() {
   document.title = bookName();
   const box = $('pages'); box.textContent = '';
   for (const sp of DATA.spreads) {
-    const got = foundIn(sp.n), total = sp.finds.length, done = got.size >= total;
+    const got = foundIn(sp.n), total = sp.finds.length, done = starred(sp.n);
     const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '4px';
     const b = document.createElement('button'); b.className = 'page-card';
-    b.setAttribute('aria-label', `${sp.title}: ${got.size} of ${total} found${done ? ', all done' : ''}`);
+    b.setAttribute('aria-label', `${sp.title}: ${got.size} of ${total} found${done ? ', star earned' : ''}`);
     const dots = sp.finds.map(f => {
       const fd = DATA.byId[f.id];
       return `<i class="${got.has(f.id) ? 'on' : ''}" style="${got.has(f.id) ? 'background:' + fd.colour : ''}"></i>`;
@@ -598,7 +601,9 @@ function miss(px, py) {
 }
 function found(f, px, py) {
   const list = store.found[K(page.n)] || (store.found[K(page.n)] = []);
-  list.push(f.id); persist();
+  list.push(f.id);
+  if (list.length >= page.finds.length) store.done[K(page.n)] = 1;
+  persist();
   drawRing(f, true);
   const r = stage.getBoundingClientRect();
   burst(r.left + px, r.top + py);
@@ -695,6 +700,8 @@ function buildStrip() {
 let openToken = 0;
 function openPage(n, after) {
   const sp = DATA.spreads.find(s => s.n === n); if (!sp) return;
+  // a page she has already finished opens straight into a new round: same picture, everyone somewhere new
+  if (finished(n)) { newRound(n); after = after || (() => say("Everyone's hiding again!")); }
   page = { ...sp, finds: layout(sp, roundOf(n)) };
   $('home').hidden = true; $('play').hidden = false; $('finale').hidden = true;
   rainbow($('playTitle'), page.title, n);
@@ -750,7 +757,7 @@ $('back').addEventListener('click', goHome);
 $('finHome').addEventListener('click', goHome);
 $('finAgain').addEventListener('click', () => {
   const n = page.n; newRound(n);
-  openPage(n, () => say('Everyone is hiding somewhere new!'));
+  openPage(n, () => say("Everyone's hiding again!"));
 });
 $('finNext').addEventListener('click', () => { const next = DATA.spreads.find(s => s.n > page.n); if (next) openPage(next.n); });
 $('sound').addEventListener('click', () => { store.sound = !store.sound; persist(); drawSound(); if (store.sound) chime(); });
@@ -772,6 +779,8 @@ fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.js
   let pruned = false;
   for (const k of Object.keys(store.found)) if (!keep.has(k)) { delete store.found[k]; pruned = true; }
   for (const k of Object.keys(store.rounds)) if (!keep.has(k)) { delete store.rounds[k]; pruned = true; }
+  for (const k of Object.keys(store.done)) if (!keep.has(k)) { delete store.done[k]; pruned = true; }
+  for (const sp of DATA.spreads) if (finished(sp.n) && !store.done[K(sp.n)]) { store.done[K(sp.n)] = 1; pruned = true; }   // stars from before
   if (pruned) persist();
   renderHome();
   const m = /^#page(\d+)$/.exec(location.hash);
