@@ -549,7 +549,9 @@ PAGE_PROPS = {1: ['prop_boxes', 'prop_presents', 'prop_plant'], 2: ['prop_plant'
               4: ['prop_boxes', 'prop_crate', 'prop_plant'], 5: ['prop_plant', 'prop_bush'],
               6: ['prop_suitcases', 'prop_plant', 'prop_boxes'], 7: ['prop_bush', 'prop_crate', 'prop_plant'],
               8: ['prop_boxes', 'prop_plant'], 9: ['prop_bush', 'prop_crate'], 10: ['prop_presents', 'prop_bush'],
-              11: ['prop_crate', 'prop_bush', 'prop_boxes']}
+              11: ['prop_crate', 'prop_bush', 'prop_boxes'], 12: ['prop_bush', 'prop_crate', 'prop_plant'],
+              13: ['prop_crate', 'prop_boxes'], 14: ['prop_bush', 'prop_plant', 'prop_crate'],
+              15: ['prop_boxes', 'prop_plant', 'prop_crate']}
 # Lookalikes (sheets decoys_a/b/c, 16 Oct 2026): (cut-out, the find they look like, height share, kind of spot).
 # People: the find's own height, nudged by head size against the find's standing cut-out (kept within 8%:
 # a side-on head reads narrower). Toys: the shoes and the lying doll as wide as the real ones, the bear and
@@ -725,11 +727,16 @@ def rng_jitter(x, y):
     return (math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1.0
 
 # ---------------------------------------------------------------- website export
-def on_grass(sp, x, y, H):
-    """1 when the ground at a spot (feet x, y in spread mm) is mostly grass: green ahead of red and blue."""
+def on_grass(sp, x, y, H, olive=False):
+    """1 when the ground at a spot (feet x, y in spread mm) is mostly grass: green ahead of red and blue.
+    olive: also count olive grass (red about as strong as green, little blue), as on the Homigot hill;
+    set per spread with "olive_grass", so the older pages keep their bushes where they were."""
     a = np.asarray(sp.crop((mm(x - .25 * H), mm(y - .04 * H), mm(x + .25 * H), mm(y + .06 * H))).convert('RGB')).astype(int)
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
-    return int(((g > r + 12) & (g > b + 12) & (g > 90)).mean() > .5)
+    grass = (g > r + 12) & (g > b + 12) & (g > 90)
+    if olive:
+        grass |= (g > b + 50) & (r < g + 10) & (g > 90) & (r > b + 30)
+    return int(grass.mean() > .5)
 
 def file_ver(path):
     """A short fingerprint of a file's contents, for ?v= links."""
@@ -809,7 +816,7 @@ def cmd_web(args):
             book_places.append({'id': p['find'], 'cut': p['cut'], 'x': p['x'], 'y': y, 'h': h,
                                 'flip': bool(p.get('flip'))})
         slots = sd.get('slots', [])
-        web_slots = [[x, y, k, round(crowd_h(sd, y), 1), on_grass(sp, x, y, crowd_h(sd, y))] for x, y, k in slots]
+        web_slots = [[x, y, k, round(crowd_h(sd, y), 1), on_grass(sp, x, y, crowd_h(sd, y), sd.get('olive_grass', False))] for x, y, k in slots]
         # + the crowd height at that depth, and 1 when the spot is on grass (where a bush may grow)
         # key: changes when the picture, the hiding places or the spots change, so the site never shows old
         # ticks on a new picture; ?v= makes phones fetch a changed picture instead of a cached one
