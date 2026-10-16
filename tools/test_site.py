@@ -11,6 +11,8 @@ Hide everyone again (on every page): the family moves, nobody overlaps, every fi
 can be tapped, a reload keeps the round, and Start this page again puts everyone back in the book's places.
 Coming back: a finished page opens straight into a new round and keeps its star on the home page, and a
 page finished before stars were saved separately still gets its star and a new round.
+Harder rounds (when data.json has them): levels 1, 2, 3 in turn; lookalikes, hiding and sitting at level 3,
+nothing overlaps, a lookalike tap says "Nearly!" and doesn't count, every find taps, Start again resets the level.
 """
 import asyncio, json, os, subprocess, sys, time
 from playwright.async_api import async_playwright
@@ -199,12 +201,71 @@ OLD_FINISH = """([k, ids]) => { const d = JSON.parse(localStorage.getItem('seek-
     localStorage.setItem('seek-book.v1', JSON.stringify(d)); }"""
 
 
+async def hard(name, viewport, touch):
+    """Harder rounds: each new round on a page is harder (levels 1, 2, 3); at level 3 lookalikes are in the
+    picture, some of the family hide or sit, nothing overlaps, a lookalike tap says "Nearly!" and doesn't count,
+    every find can still be tapped, a reload keeps the round, and Start this page again goes back to level 1."""
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx = await b.new_context(viewport=viewport, has_touch=touch, is_mobile=touch, device_scale_factor=1)
+        page = await ctx.new_page()
+        errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        tap = page.touchscreen.tap if touch else page.mouse.click
+        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        lv = await page.evaluate("""() => { const n = DATA.spreads[0].n, out = [];
+            for (let i = 0; i < 4; i++) { newRound(n); out.push(levelOf(n)); } return out; }""")
+        assert lv == [1, 2, 3, 3], f'levels went {lv}'
+        for sp in DATA['spreads']:
+            n = sp['n']
+            await page.evaluate(f"() => {{ store.plays[K({n})] = 2; newRound({n}); persist(); }}")
+            await page.goto(f'http://localhost:{PORT}/#page{n}'); await page.reload()
+            await page.wait_for_function("document.getElementById('loading').hidden")
+            info = await page.evaluate("""() => ({ lv: levelOf(page.n), decoys: page.decoys.length,
+                hidden: page.finds.filter(f => f.prop).length, sit: page.finds.filter(f => /_sit$/.test(f.cut)).length,
+                units: [...page.finds, ...page.decoys].map(u => u.ubox || u.ibox),
+                boxes: page.finds.map(f => f.box), imgs: document.querySelectorAll('#layer img.fam').length })""")
+            assert info['lv'] == 3, f'page {n}: level {info["lv"]}'
+            assert info['decoys'] >= 4, f'page {n}: only {info["decoys"]} lookalikes'
+            assert info['hidden'] >= 2 or n == 0, f'page {n}: only {info["hidden"]} hiding'
+            U = info['units']
+            for i in range(len(U)):
+                for j in range(i + 1, len(U)):
+                    a, c = U[i], U[j]
+                    assert not (a[0] < c[2] and c[0] < a[2] and a[1] < c[3] and c[1] < a[3]), f'page {n}: two things overlap'
+            assert all(0 <= v <= 1 for bx in info['boxes'] for v in bx), f'page {n}: a find is off the picture'
+            # a lookalike tap: "Nearly!", nothing counted
+            await page.click('#zfit'); await page.wait_for_timeout(350)
+            pt = await page.evaluate("""() => { for (const d of page.decoys) {
+                    const cx = (d.box[0] + d.box[2]) / 2, cy = (d.box[1] + d.box[3]) / 2;
+                    if (!page.finds.some(f => { const b = padded(f); return Math.abs(cx * view.W - b.cx) <= b.hw && Math.abs(cy * view.H - b.cy) <= b.hh; })) return [cx, cy]; }
+                return null; }""")
+            if pt:
+                s0 = await img_to_screen(page, pt[0], pt[1])
+                await tap(s0['x'], s0['y']); await page.wait_for_timeout(150)
+                assert 'Nearly' in (await page.text_content('#say') or ''), f'page {n}: a lookalike tap did not say Nearly'
+                assert await page.text_content('#count') == f"0/{len(sp['finds'])}", f'page {n}: a lookalike counted'
+            got = await tap_all(page, tap); await page.wait_for_timeout(1500)
+            assert await page.text_content('#count') == f'{got}/{got}', f'page {n}: a find in the hard round did not register'
+            print(f"  page {n}: level 3, {info['decoys']} lookalikes, {info['hidden']} hiding, {info['sit']} sitting, {info['imgs']} pictures, all found")
+        await page.click('#finHome'); await page.wait_for_timeout(300)
+        last = page.locator('.again').last
+        await last.click(); await last.click(); await page.wait_for_timeout(200)
+        n = DATA['spreads'][-1]['n']
+        assert await page.evaluate(f'levelOf({n})') == 1 and await page.evaluate(f'store.plays[K({n})] === undefined'), 'Start again did not reset the level'
+        assert not errs, errs
+        print(f'{name}: harder rounds checks passed')
+        await b.close()
+
+
 async def main():
     if '--rounds-only' not in sys.argv:
         await run('phone 390 x 760', {'width': 390, 'height': 760}, True)
         await run('laptop 1280 x 800', {'width': 1280, 'height': 800}, False)
     await rounds('phone 390 x 760', {'width': 390, 'height': 760}, True)
     await reopen('phone 390 x 760', {'width': 390, 'height': 760}, True)
+    if json.load(open(os.path.join(ROOT, 'data.json'))).get('hard'):
+        await hard('phone 390 x 760', {'width': 390, 'height': 760}, True)
 
 if __name__ == '__main__':
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT],

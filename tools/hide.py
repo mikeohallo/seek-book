@@ -528,6 +528,52 @@ WEB_SIZE = {
 # pages where the grown-ups shrink a lot (the airport, the party) the crowd rule alone would shrink them.
 OBJ_GROW = {'shoes': 1.3, 'unicorn': 1.3, 'teddy': 1.0}
 HANGING = {'obj_shoes_hang'}
+# Harder rounds on the website (16 Oct 2026): from a page's third round on, lookalikes join the crowd and
+# some of the family sit down or hide behind a prop added to the picture. Heights are shares of a crowd
+# grown-up at the spot's depth, like WEB_SIZE; sitting and peeking heights were matched to the standing
+# cut-outs by head size (sit 0.82-0.94 of standing, peek 0.41-0.62).
+HARD_SIT = {'girl': ('girl_sit', .926), 'dad': ('dad_sit', .941), 'mum': ('mum_sit', .850),
+            'grandma': ('grandma_sit', .819), 'uncle': ('uncle_sit', .909),
+            'grandparents': ('grandparents_sit', .875)}
+HARD_PEEK = {'girl': ('girl_peek', .440), 'dad': ('dad_peek', .446), 'mum': ('mum_peek', .433),
+             'grandma': ('grandma_peek', .495), 'uncle': ('uncle_peek', .621),
+             'grandparents': ('grandparents_peek', .412), 'unicorn': ('obj_unicorn_peek', .419)}
+STAND_OF = {'girl': 'girl_stand', 'dad': 'dad_stand', 'mum': 'mum_stand', 'grandma': 'grandma_stand',
+            'uncle': 'uncle_stand', 'grandparents': 'grandparents_stand', 'unicorn': 'obj_unicorn_stand'}
+# Props to hide behind (sheet props, 16 Oct 2026): (height as a share of a crowd grown-up, flat on top for
+# peeking, wide enough for the pair, grows so only on grass)
+PROPS = {'prop_boxes': (.50, True, False, False), 'prop_plant': (.62, False, False, False),
+         'prop_bush': (.48, False, True, True), 'prop_crate': (.42, True, True, False),
+         'prop_suitcases': (.46, True, False, False), 'prop_presents': (.42, True, True, False)}
+PAGE_PROPS = {1: ['prop_boxes', 'prop_presents', 'prop_plant'], 2: ['prop_plant', 'prop_boxes'], 3: ['prop_bush', 'prop_crate'],
+              4: ['prop_boxes', 'prop_crate', 'prop_plant'], 5: ['prop_plant', 'prop_bush'],
+              6: ['prop_suitcases', 'prop_plant', 'prop_boxes'], 7: ['prop_bush', 'prop_crate', 'prop_plant'],
+              8: ['prop_boxes', 'prop_plant'], 9: ['prop_bush', 'prop_crate'], 10: ['prop_presents', 'prop_bush']}
+# Lookalikes (sheets decoys_a/b/c, 16 Oct 2026): (cut-out, the find they look like, height share, kind of spot).
+# People: the find's own height, nudged by head size against the find's standing cut-out (kept within 8%:
+# a side-on head reads narrower). Toys: the shoes and the lying doll as wide as the real ones, the bear and
+# the ponies as tall. Each one differs from its find in one or two clear ways.
+DECOYS = [
+    ('dec_girl_yellow', 'girl', .794, 'p'),         # the girl's hair, yellow T-shirt and red shorts
+    ('dec_girl_blonde', 'girl', .681, 'p'),         # the girl's clothes, blonde pigtails
+    ('dec_dad_notattoo', 'dad', 1.042, 'p'),          # Dad's beard and shirt, no tattoo
+    ('dec_dad_shaven', 'dad', 1.058, 'p'),            # a tattoo, but no beard and a red shirt
+    ('dec_mum_noglasses', 'mum', .942, 'p'),          # Mum's bun, no glasses, blue top
+    ('dec_mum_loosehair', 'mum', .883, 'p'),          # Mum's glasses and clothes, long loose hair
+    ('dec_grandma_curly', 'grandma', .928, 'p'),      # grey curls, blue dress
+    ('dec_grandma_dark', 'grandma', 1.004, 'p'),      # Grandma's flowery green dress, dark hair
+    ('dec_uncle_hoodie', 'uncle', 1.08, 'p'),         # the uncle's hair and grey hoodie, no glasses
+    ('dec_uncle_jumper', 'uncle', 1.08, 'p'),         # the uncle's glasses, red jumper
+    ('dec_pair_cardigan', 'grandparents', 1.0, 'w'),     # an older couple, no glasses, green polo
+    ('dec_pair_walk', 'grandparents', .895, 'w'),        # grey hair, purple and brown
+    ('dec_pair_glasses', 'grandparents', .883, 'w'),     # glasses and a black bob, red and green
+    ('dec_shoes_blue', 'shoes', .313, 'o'),           # blue ballet shoes
+    ('dec_shoes_sneakers', 'shoes', .31, 'o'),        # pink sneakers
+    ('dec_doll_yellow', 'teddy', .316, 'o'),        # a sleepy doll in yellow
+    ('dec_doll_bear', 'teddy', .34, 'o'),           # a sage-green teddy bear
+    ('dec_unicorn_pony', 'unicorn', .49, 'o'),        # a lilac pony with a rainbow mane, no horn
+    ('dec_unicorn_white', 'unicorn', .49, 'o'),       # a white unicorn
+]
 SLOT_TEST = {'p': ('uncle_walk', 1.0), 'w': ('grandparents_walk', .96), 'o': ('obj_teddy_lie', .27)}
 
 def adult_h(sd):
@@ -677,6 +723,12 @@ def rng_jitter(x, y):
     return (math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1.0
 
 # ---------------------------------------------------------------- website export
+def on_grass(sp, x, y, H):
+    """1 when the ground at a spot (feet x, y in spread mm) is mostly grass: green ahead of red and blue."""
+    a = np.asarray(sp.crop((mm(x - .25 * H), mm(y - .04 * H), mm(x + .25 * H), mm(y + .06 * H))).convert('RGB')).astype(int)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    return int(((g > r + 12) & (g > b + 12) & (g > 90)).mean() > .5)
+
 def file_ver(path):
     """A short fingerprint of a file's contents, for ?v= links."""
     with open(path, 'rb') as fh:
@@ -685,7 +737,7 @@ def file_ver(path):
 def cmd_web(args):
     """Export the website's pictures and data from scenes.json into OUT (default website/upload):
     scenes/sNN.webp (the empty spread, 3200 px wide), thumbs/sNN.webp (640 px, also empty, so the home
-    page gives nothing away), cuts/<name>.webp (every cut-out, 400 px tall), portraits/<id>.webp (the
+    page gives nothing away), cuts/<name>.webp (every cut-out, 360 px tall), portraits/<id>.webp (the
     key portraits, 240 px) and data.json. The site places the family on the empty picture itself:
     the book's places on a first play, and a new mix of the spread's checked spots on "Hide everyone
     again". data.json holds the finds, the poses allowed in new rounds, each cut-out's shape, and per
@@ -711,15 +763,27 @@ def cmd_web(args):
                                         **({'m': round(share * g, 3)} if g else {}))
                                    for c, share, fl in ROUND_POSES[fd['id']]]
     # the cut-outs: the site places the family itself (the book's places first, new ones on "Hide again")
+    hard_cuts = ({c for c, _ in HARD_SIT.values()} | {c for c, _ in HARD_PEEK.values()} | set(PROPS) |
+                 {d[0] for d in DECOYS})
+    have_hard = bool(DECOYS) and all(os.path.exists(os.path.join('cutouts', c + '.png')) for c in hard_cuts)
     cut_names = sorted({p['cut'] for sd in book['spreads'] for p in sd.get('places', [])} |
-                       {c for poses in ROUND_POSES.values() for c, _, _ in poses})
+                       {c for poses in ROUND_POSES.values() for c, _, _ in poses} | (hard_cuts if have_hard else set()))
     for name in cut_names:
         cut = load_cut(name)
         hpx = args.cut_height
         small = resize_rgba(cut, cut.width * hpx / cut.height, hpx)
         path = os.path.join(out, 'cuts', name + '.webp')
-        small.save(path, 'WEBP', quality=88, method=6)
+        small.save(path, 'WEBP', quality=82, method=6)
         data['cuts'][name] = {'src': f"cuts/{name}.webp?v={file_ver(path)}", 'a': round(cut.width / cut.height, 4)}
+    if have_hard:
+        stand = lambda fid: WEB_SIZE[STAND_OF[fid]]
+        data['hard'] = {
+            'sit': {fid: {'cut': c, 'f': round(stand(fid) * r, 3), 'flip': fid != 'dad'} for fid, (c, r) in HARD_SIT.items()},
+            'peek': {fid: {'cut': c, 'f': round(stand(fid) * r, 3), 'flip': fid != 'dad'} for fid, (c, r) in HARD_PEEK.items()},
+            'props': {c: {'cut': c, 'f': f, 'flat': flat, 'wide': wide, 'grass': grass} for c, (f, flat, wide, grass) in PROPS.items()},
+            'decoys': [{'cut': c, 'like': like, 'f': f, 'k': k, 'flip': True} for c, like, f, k in DECOYS]}
+    else:
+        print('harder rounds: lookalike or prop cut-outs missing, not exported')
     for sd in book['spreads']:
         if not os.path.exists(os.path.join('scenes', sd['scene'])):
             print(f'spread {sd["n"]}: scene file missing, skipped'); continue
@@ -728,7 +792,7 @@ def cmd_web(args):
         wpx = args.width; hpx = round(sp.height * wpx / sp.width)
         sp.resize((wpx, hpx), Image.LANCZOS).save(os.path.join(out, 'scenes', f's{n:02d}.webp'), quality=args.quality, method=6)
         sp.resize((640, round(sp.height * 640 / sp.width)), Image.LANCZOS).save(
-            os.path.join(out, 'thumbs', f's{n:02d}.webp'), quality=80, method=6)
+            os.path.join(out, 'thumbs', f's{n:02d}.webp'), quality=72, method=6)
         boxes, book_places = [], []
         for p in sd.get('places', []):
             if not p.get('find'):
@@ -743,7 +807,8 @@ def cmd_web(args):
             book_places.append({'id': p['find'], 'cut': p['cut'], 'x': p['x'], 'y': y, 'h': h,
                                 'flip': bool(p.get('flip'))})
         slots = sd.get('slots', [])
-        web_slots = [[x, y, k, round(crowd_h(sd, y), 1)] for x, y, k in slots]    # + crowd height at that depth
+        web_slots = [[x, y, k, round(crowd_h(sd, y), 1), on_grass(sp, x, y, crowd_h(sd, y))] for x, y, k in slots]
+        # + the crowd height at that depth, and 1 when the spot is on grass (where a bush may grow)
         # key: changes when the picture, the hiding places or the spots change, so the site never shows old
         # ticks on a new picture; ?v= makes phones fetch a changed picture instead of a cached one
         spec = json.dumps({'scene': sd['scene'], 'trim': [sd.get('trim_top', 1.0), sd.get('trim_left', 0.5)],
@@ -752,7 +817,8 @@ def cmd_web(args):
         data['spreads'].append({'n': n, 'key': key, 'title': sd['title'],
                                 'img': f"scenes/s{n:02d}.webp?v={file_ver(os.path.join(out, 'scenes', f's{n:02d}.webp'))}",
                                 'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
-                                'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': web_slots})
+                                'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': web_slots,
+                                **({'pr': PAGE_PROPS.get(n, [])} if have_hard else {})})
         kb = os.path.getsize(os.path.join(out, 'scenes', f's{n:02d}.webp')) // 1024
         print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {len(slots)} spots for new rounds, {wpx} x {hpx} px, {kb} KB')
     with open(os.path.join(out, 'data.json'), 'w', encoding='utf-8') as fh:
@@ -988,8 +1054,8 @@ def main():
     s.add_argument('--spacing', type=float, default=55); s.add_argument('--seed', type=int, default=0)
     s.add_argument('--no-balance', dest='balance', action='store_false'); s.set_defaults(fn=cmd_spots)
     wb = sub.add_parser('web'); wb.add_argument('--out', default=os.path.join('website', 'upload'))
-    wb.add_argument('--width', type=int, default=3200); wb.add_argument('--quality', type=int, default=74)
-    wb.add_argument('--cut-height', dest='cut_height', type=int, default=400)
+    wb.add_argument('--width', type=int, default=3200); wb.add_argument('--quality', type=int, default=72)
+    wb.add_argument('--cut-height', dest='cut_height', type=int, default=360)
     wb.set_defaults(fn=cmd_web)
     sl = sub.add_parser('slots'); sl.add_argument('n', type=int); sl.add_argument('--refs')
     sl.add_argument('--keep'); sl.add_argument('--spacing', type=float, default=.45)

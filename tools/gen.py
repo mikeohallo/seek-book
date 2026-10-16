@@ -5,6 +5,7 @@ image model, from the prompts in prompts.json.
     py gen.py prompts sheets        show the sheet prompts (free)
     py gen.py sheets                make every character and object sheet -> sheets/sheet_<name>_vN.jpg
     py gen.py sheets dad mum        just those
+    py gen.py sheets decoys         the lookalike sheets and the props sheet (decoys_a, decoys_b, decoys_c, props)
     py gen.py scene 1               make scene 1 -> scenes/scene_01_vN.jpg (its prompt must be in prompts.json)
     py gen.py scene 1 --count 2     two versions to choose from
 
@@ -169,13 +170,14 @@ def main():
         kind = 'scene' if a.targets and a.targets[0] == 'scenes' else 'sheet'
         names = a.targets[1:] if a.targets and a.targets[0] in ('sheets', 'scenes') else a.targets
         group = DATA['scenes'] if kind == 'scene' else DATA['sheets']
-        for name in names or list(group):
+        for name in [n for t in (names or list(group)) for n in DATA.get('groups', {}).get(t, [t])]:
             j = job(kind, name)
             print(f'\n===== {kind} {j["name"]} (attach: {", ".join(j["refs"])}) =====\n{j["prompt"]}')
         return
 
     if a.command == 'sheets':
-        run('sheet', a.targets or list(DATA['sheets']), a)
+        names = [n for t in (a.targets or list(DATA['sheets'])) for n in DATA.get('groups', {}).get(t, [t])]
+        run('sheet', names, a)
     else:
         if not a.targets:
             sys.exit('Say which scene, e.g.  py gen.py scene 1')
