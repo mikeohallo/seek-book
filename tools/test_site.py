@@ -3,7 +3,7 @@
     python3 tools/test_site.py website/upload
 
 Needs the built site folder (index.html, data.json and the pictures) and Playwright with Chromium.
-Checks: every find on the first page registers when tapped, a tap on nothing shows a miss, the count
+Checks: every find on the first page registers when tapped, a tap on an empty part of the picture shows a miss, the count
 and rings survive a reload, the last find opens "You found everyone!", Start again clears the page,
 the zoom buttons and mouse wheel zoom, a drag never counts as a tap, holding a face shows a clue,
 nothing scrolls sideways, and the page throws no errors.
@@ -11,6 +11,8 @@ Hide everyone again (on every page): the family moves, nobody overlaps, every fi
 can be tapped, a reload keeps the round, and Start this page again puts everyone back in the book's places.
 Coming back: a finished page opens straight into a new round and keeps its star on the home page, and a
 page finished before stars were saved separately still gets its star and a new round.
+Private names: the plain page shows only the generic labels; a #me= link sets a child's own names and name on
+the device, carries ticks over from a renamed id and leaves the address bar clean; a broken link does nothing.
 Harder rounds (when data.json has them): levels 1, 2, 3 in turn; lookalikes, hiding and sitting at level 3,
 nothing overlaps, a lookalike tap says "Nearly!" and doesn't count, every find taps, Start again resets the level.
 """
@@ -54,8 +56,15 @@ async def run(name, viewport, touch):
             pt = await img_to_screen(page, (x0 + x1) / 2, (y0 + y1) / 2)
             await tap(pt['x'], pt['y']); await page.wait_for_timeout(120)
         assert await page.text_content('#count') == f'{len(finds) - 1}/{len(finds)}', 'a find did not register'
-        await tap(viewport['width'] * 0.5, 90); await page.wait_for_timeout(100)
-        assert await page.locator('.miss').count() >= 0
+        # a tap on an empty part of the picture shows a miss and counts nothing
+        await page.click('#zfit'); await page.wait_for_timeout(450)
+        spot = await page.evaluate(EMPTY_SPOT)
+        assert spot, 'no empty part of the picture to test a miss on'
+        pt = await img_to_screen(page, spot[0], spot[1])
+        misses = await page.locator('.miss').count()
+        await tap(pt['x'], pt['y']); await page.wait_for_timeout(100)
+        assert await page.locator('.miss').count() == misses + 1, 'a tap on nothing did not show a miss'
+        assert await page.text_content('#count') == f'{len(finds) - 1}/{len(finds)}', 'a miss counted as a find'
         await page.reload(); await page.wait_for_function("document.getElementById('loading').hidden")
         assert await page.locator('#marks g').count() == len(finds) - 1, 'rings not restored after reload'
         await page.click('#zfit'); await page.wait_for_timeout(450)
@@ -85,6 +94,13 @@ async def run(name, viewport, touch):
         assert not errs, errs
         print(f'{name}: all checks passed')
         await b.close()
+
+
+# a point on the picture (as fractions) well away from every find's tap area
+EMPTY_SPOT = """() => { for (let gy = 0.1; gy < 0.92; gy += 0.04) for (let gx = 0.06; gx < 0.94; gx += 0.04)
+        if (!page.finds.some(f => { const b = padded(f); return Math.abs(gx * view.W - b.cx) <= b.hw * 1.6 && Math.abs(gy * view.H - b.cy) <= b.hh * 1.6; }))
+            return [gx, gy];
+    return null; }"""
 
 
 async def fam(page):
@@ -195,6 +211,56 @@ async def reopen(name, viewport, touch):
         await b.close()
 
 
+async def names(name, viewport, touch):
+    """Private names: the public page shows only data.json's generic labels; a #me= link (made by
+    hide.py link) saves a child's own names and name on the device, carries ticks over from a renamed id,
+    leaves the address bar clean, and keeps working after a reload. A broken link does nothing.
+    Ticks for an id that's no longer on a page don't count."""
+    import base64
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx = await b.new_context(viewport=viewport, has_touch=touch, is_mobile=touch, device_scale_factor=1)
+        page = await ctx.new_page()
+        errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        base = f'http://localhost:{PORT}/'
+        await page.goto(base); await page.wait_for_selector('.page-card')
+        caps = await page.locator('#who figcaption').all_text_contents()
+        assert caps == [f['label'] for f in DATA['finds']], f'home shows {caps}, not the labels in data.json'
+        assert (await page.title()) == 'My Seek and Find', 'the plain page names someone'
+        first, second = DATA['finds'][0]['id'], DATA['finds'][1]['id']
+        sp1, sp2 = DATA['spreads'][0], DATA['spreads'][1]
+        # ticks saved under an old id on page 1, and under an id that no longer exists on page 2
+        await page.evaluate("""([k1, k2, other]) => localStorage.setItem('seek-book.v1', JSON.stringify(
+            { found: { [k1]: ['old-id', other], [k2]: ['gone'] }, rounds: {}, done: {} }))""", [sp1['key'], sp2['key'], second])
+        await page.reload(); await page.wait_for_selector('.page-card')
+        dots = await page.locator('.page-card .dots b').all_text_contents()
+        assert dots[1].startswith('0 of'), f'an id no longer on the page counted: {dots[1]}'
+        me = {'for': 'Sam', 'names': {first: 'Testname', second: 'Other Name'}, 'was': {'old-id': first}}
+        b64 = base64.urlsafe_b64encode(json.dumps(me).encode()).decode().rstrip('=')
+        # opened in the tab that already shows the page (only the part after # changes, so no reload by itself)
+        await page.goto(base + '#me=' + b64); await page.wait_for_function("location.hash === ''")
+        await page.wait_for_selector('.page-card')
+        for attempt in ('after the link', 'after a reload'):
+            caps = await page.locator('#who figcaption').all_text_contents()
+            assert caps[0] == 'Testname' and caps[1] == 'Other Name', f'own names not shown {attempt}: {caps}'
+            assert caps[2:] == [f['label'] for f in DATA['finds'][2:]], f'other labels changed {attempt}'
+            assert (await page.title()) == "Sam's Seek and Find", f'name not taken from the link {attempt}'
+            await page.goto(base); await page.wait_for_selector('.page-card')
+        found = await page.evaluate("([k]) => JSON.parse(localStorage.getItem('seek-book.v1')).found[k]", [sp1['key']])
+        assert sorted(found) == sorted([first, second]), f'ticks not carried over from the old id: {found}'
+        await page.locator('.page-card').first.click(); await page.wait_for_function("document.getElementById('loading').hidden")
+        assert await page.text_content('#count') == f"2/{len(sp1['finds'])}", 'carried-over ticks not counted'
+        assert (await page.locator(f'.face[data-id="{first}"] span').text_content()) == 'Testname', 'own name not on the face strip'
+        # a broken link: no errors, nothing changed, address bar cleaned
+        await page.goto(base + '#me=bm90IGpzb24'); await page.wait_for_function("location.hash === ''")
+        await page.wait_for_selector('.page-card')
+        assert (await page.locator('#who figcaption').first.text_content()) == 'Testname', 'a broken link changed the names'
+        assert not errs, errs
+        print(f'{name}: private names checks passed')
+        await b.close()
+
+
 # progress as an older version of the site saved it: the page's finds all found, no separate star
 OLD_FINISH = """([k, ids]) => { const d = JSON.parse(localStorage.getItem('seek-book.v1') || '{}');
     d.found = d.found || {}; d.found[k] = ids; if (d.done) delete d.done[k]; if (d.rounds) delete d.rounds[k];
@@ -264,6 +330,7 @@ async def main():
         await run('laptop 1280 x 800', {'width': 1280, 'height': 800}, False)
     await rounds('phone 390 x 760', {'width': 390, 'height': 760}, True)
     await reopen('phone 390 x 760', {'width': 390, 'height': 760}, True)
+    await names('phone 390 x 760', {'width': 390, 'height': 760}, True)
     if json.load(open(os.path.join(ROOT, 'data.json'))).get('hard'):
         await hard('phone 390 x 760', {'width': 390, 'height': 760}, True)
 

@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>My Seek and Find</title>
-<meta name="description" content="Find the family hidden in every busy picture from the seek-and-find book.">
+<meta name="description" content="Find the family hidden in every busy picture.">
 <meta name="theme-color" content="#FFF8EC">
 <meta name="robots" content="noindex">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Seek and Find">
-<meta property="og:description" content="Find the family hidden in every busy picture from the seek-and-find book.">
+<meta property="og:description" content="Find the family hidden in every busy picture.">
 <meta property="og:url" content="https://seek.mikeohalloran.au/">
 <meta property="og:image" content="https://seek.mikeohalloran.au/share.jpg">
 <meta property="og:image:width" content="1200">
@@ -258,7 +258,7 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 
 <script>
 // ---------------------------------------------------------------- setup ----
-const DEFAULT_OWNER = '';      // gift copies: link with ?for=Name, or change this
+const DEFAULT_OWNER = '';           // gift copies: link with ?for=Name
 const COLOURS = ['#EC6AA8', '#F4882C', '#F2C828', '#68B242', '#54A6E2', '#A880D6'];
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -267,8 +267,8 @@ let DATA = null;
 // ------------------------------------------------------------- storage ----
 const KEY = 'seek-book.v1';
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null }; }
-  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null }; }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null, names: d.names || {} }; }
+  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null, names: {} }; }
 }
 const store = load();
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
@@ -276,6 +276,27 @@ try {
   const f = new URLSearchParams(location.search).get('for');
   if (f && !store.owner) { store.owner = f.trim().slice(0, 20); persist(); }
 } catch (e) {}
+// A private link (#me=...) gives one child's devices the family's own names. This page only knows generic
+// labels (Girl, Dad, Uncle, ...); the names travel after the #, which browsers never send to the server, are
+// kept on this device, and are taken out of the address bar straight away. "was" maps a find's old id to its
+// new one, so ticks made before a rename carry over. (hide.py link makes the link.)
+try {
+  const m = /^#me=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (m) {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const me = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64 + '='.repeat((4 - b64.length % 4) % 4)), c => c.charCodeAt(0))));
+    if (me.names && typeof me.names === 'object')
+      store.names = Object.fromEntries(Object.entries(me.names).filter(([, v]) => typeof v === 'string' && v.trim()).map(([k, v]) => [k, v.trim().slice(0, 30)]));
+    if (typeof me.for === 'string' && me.for.trim()) store.owner = me.for.trim().slice(0, 20);
+    if (me.was && typeof me.was === 'object')
+      for (const k of Object.keys(store.found)) store.found[k] = [...new Set(store.found[k].map(id => typeof me.was[id] === 'string' ? me.was[id] : id))];
+    persist();
+  }
+} catch (e) {}
+if (/^#me=/.test(location.hash)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+// a private link opened in a tab that already shows this page only changes the part after the #, which
+// doesn't reload the page: reload, so the code above reads it
+addEventListener('hashchange', () => { if (/^#me=/.test(location.hash)) location.reload(); });
 function ownerName() {
   let f = null; try { f = new URLSearchParams(location.search).get('for'); } catch (e) {}
   return (f || store.owner || DEFAULT_OWNER || '').trim().slice(0, 20);
@@ -283,7 +304,10 @@ function ownerName() {
 // progress is kept per picture: each spread's key changes whenever its picture or hiding places change,
 // so ticks from an old version of a page never show up on a new one
 const K = n => { const s = DATA && DATA.spreads.find(s => s.n === n); return (s && s.key) || String(n); };
-const foundIn = n => new Set(store.found[K(n)] || []);
+const foundIn = n => {      // only ids that are on the page now (an id renamed since doesn't count)
+  const sp = DATA && DATA.spreads.find(s => s.n === n), ids = sp && new Set(sp.finds.map(f => f.id));
+  return new Set((store.found[K(n)] || []).filter(id => !ids || ids.has(id)));
+};
 const finished = n => { const sp = DATA.spreads.find(s => s.n === n); return !!sp && foundIn(n).size >= sp.finds.length; };
 const starred = n => !!store.done[K(n)] || finished(n);      // finished at least once: the star stays
 
@@ -554,7 +578,7 @@ function renderHome() {
     box.append(wrap);
   }
   const who = $('who'); who.textContent = '';
-  for (const fd of DATA.finds) {
+  for (const fd of DATA.finds.map(f => DATA.byId[f.id])) {      // with the device's own names, if it has them
     const f = document.createElement('figure');
     f.innerHTML = `<img alt="" src="${fd.portrait}"><figcaption></figcaption>`;
     f.querySelector('figcaption').textContent = fd.label;
@@ -702,7 +726,8 @@ function miss(px, py) {
   stage.append(m); setTimeout(() => m.remove(), 700);
 }
 function found(f, px, py) {
-  const list = store.found[K(page.n)] || (store.found[K(page.n)] = []);
+  const ids = new Set(page.finds.map(q => q.id));
+  const list = store.found[K(page.n)] = (store.found[K(page.n)] || []).filter(id => ids.has(id));
   list.push(f.id);
   if (list.length >= page.finds.length) store.done[K(page.n)] = 1;
   persist();
@@ -882,7 +907,8 @@ try {   // the link to the other books carries the name along
 
 fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
   DATA = d;
-  DATA.byId = Object.fromEntries(d.finds.map(f => [f.id, { ...f, say: f.say || f.label }]));
+  const own = store.names || {};     // the family's own names, from a private link on this device
+  DATA.byId = Object.fromEntries(d.finds.map(f => [f.id, own[f.id] ? { ...f, label: own[f.id], say: own[f.id] } : { ...f, say: f.say || f.label }]));
   const keep = new Set(DATA.spreads.map(s => K(s.n)));      // forget progress on pictures that have changed
   let pruned = false;
   for (const k of Object.keys(store.found)) if (!keep.has(k)) { delete store.found[k]; pruned = true; }

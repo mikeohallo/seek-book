@@ -21,10 +21,9 @@ head, body = src[:head_end], src[head_end:]
 head = re.sub(r'<title>.*?</title>\s*', '', head, flags=re.S)
 head = re.sub(r'<meta name="claude:viewport-fit-sides"[^>]*>\s*', '', head)
 head = re.sub(r'<meta name="description"[^>]*>\s*', '', head)
-body = body.replace("const DEFAULT_OWNER = 'the girl';", "const DEFAULT_OWNER = '';")
-assert "const DEFAULT_OWNER = '';" in body, 'DEFAULT_OWNER line not found'
+assert "const DEFAULT_OWNER = '';" in body, 'the hosted page must not name anyone (DEFAULT_OWNER must be empty)'
 
-desc = 'Find the family hidden in every busy picture from the seek-and-find book.'
+desc = 'Find the family hidden in every busy picture.'
 page = f'''<!doctype html>
 <html lang="en-AU">
 <head>

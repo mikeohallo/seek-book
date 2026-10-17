@@ -11,7 +11,7 @@ Folder layout (run from the book folder, e.g. C:\\Projects\\Seek and Find):
   preview/                    things to look at before printing
 
 Commands:
-  python3 hide.py cut sheets/sheet_girl.jpg girl            poses default: stand,sit,walk,peek (reading order)
+  python3 hide.py cut sheets/sheet_girl.jpg girl              poses default: stand,sit,walk,peek (reading order)
   python3 hide.py cut sheets/sheet_objects.jpg obj --poses shoes,teddy,unicorn
   python3 hide.py grid 1          preview/spread_01_grid.jpg: the fitted scene with a labelled 10 mm grid
   python3 hide.py spread 1        builds the two pages of spread 1 (plus a preview with answer circles)
@@ -19,6 +19,7 @@ Commands:
   python3 hide.py who             page 3: who to find
   python3 hide.py answers         pages 24-25
   python3 hide.py pdf             pages/*.jpg -> Seek_and_Find_All.pdf
+  python3 hide.py link            prints the private link that gives one child's devices her own names
 
 Geometry (mm): A4 210 x 297. Outer margins 6 (Officeworks prints nothing within 5 of the edge).
 Each spread is one continuous picture 420 x 249 across both pages; each page prints its half from
@@ -246,7 +247,7 @@ def draw_key_strip(page, book, sd, side):
     for fd, cx in zip(group, centres):
         pt = portrait(fd, dia, ring)
         can.alpha_composite(pt, (int(cx - dia / 2), int(cy - dia / 2)))
-        label_lines(d, fd['label'], f_name, cx, cy + dia / 2 + mm(1.2), slot - mm(2), mm(5.0))
+        label_lines(d, fd.get('own', fd['label']), f_name, cx, cy + dia / 2 + mm(1.2), slot - mm(2), mm(5.0))
     page.paste(can.convert('RGB'))
 
 def label_lines(d, text, f, cx, top, max_w, line_h):
@@ -486,7 +487,7 @@ def cmd_spots(args):
 # ---------------------------------------------------------------- hide again: spots for new rounds
 # On the website, "Hide everyone again" puts the family in new places. Each spread lists checked spots
 # ("slots": feet position x, y in spread mm and a kind), and the site picks a fresh mix for every round.
-# Kinds: p = room for one person, w = wide enough for the grandparents (also fits one person),
+# Kinds: p = room for one person, w = wide enough for the grandparents' pair (also fits one person),
 # o = a toy on the ground. Sizes on the website come from the crowd at each spot's depth (WEB_SIZE below).
 ROUND_POSES = {     # find: [(cut, height as a share of A, may be mirrored)]; Dad is never mirrored
     'girl': [('girl_walk', .70, True), ('girl_stand', .70, True)],
@@ -500,7 +501,7 @@ ROUND_POSES = {     # find: [(cut, height as a share of A, may be mirrored)]; Da
     'unicorn': [('obj_unicorn_stand', .32, True)],
 }
 ROUND_KINDS = {'grandparents': 'w', 'shoes': 'o', 'teddy': 'o', 'unicorn': 'o'}   # others: 'pw'
-# Sizes on the website (16 Oct). Mike, after the girl had played every page: the grown-ups look a little big
+# Sizes on the website (16 Oct). Mike, once every page had been played: the grown-ups look a little big
 # next to the people in the pictures, the ballet shoes and the unicorn a little small. Measuring the crowd
 # showed why: most scenes have perspective (people further up the picture are smaller), but the book used
 # one size per find per page, and new rounds one size for every spot. So each spread now lists `crowd`:
@@ -761,7 +762,7 @@ def cmd_web(args):
     out = args.out
     for d in ('scenes', 'thumbs', 'portraits', 'cuts'):
         os.makedirs(os.path.join(out, d), exist_ok=True)
-    data = {'title': book.get('title', ''), 'mm': [SPREAD_W_MM, SCENE_H_MM], 'finds': [], 'spreads': [],
+    data = {'mm': [SPREAD_W_MM, SCENE_H_MM], 'finds': [], 'spreads': [],
             'cuts': {}, 'poses': {}}
     for fd in book['finds']:
         pt = portrait(fd, 240, 14)
@@ -827,6 +828,11 @@ def cmd_web(args):
         spec = json.dumps({'scene': sd['scene'], 'trim': [sd.get('trim_top', 1.0), sd.get('trim_left', 0.5)],
                            'places': sd.get('places', []), 'slots': slots}, sort_keys=True)
         key = f'{n}-' + hashlib.md5(spec.encode()).hexdigest()[:6]
+        # key_pin [this key, the key to keep]: a page that only had its find ids or cut-out names renamed
+        # keeps its old key, so devices keep their stars and rounds; any real change to the page drops the pin
+        pin = sd.get('key_pin')
+        if pin and pin[0] == key:
+            key = pin[1]
         data['spreads'].append({'n': n, 'key': key, 'title': sd['title'],
                                 'img': f"scenes/s{n:02d}.webp?v={file_ver(os.path.join(out, 'scenes', f's{n:02d}.webp'))}",
                                 'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
@@ -842,6 +848,21 @@ def cmd_web(args):
 def heading(can, text, baseline_mm, size_mm=17, start=0):
     f = font(FREDOKA, mm(size_mm), 'Bold')
     rainbow_text(can, text, f, mm(PAGE_W_MM / 2 + 4), mm(baseline_mm), stroke=mm(1.1), start=start, tilt=3)
+
+def cmd_link(args):
+    """Print the private link for one child's devices. The public site only knows generic labels (Girl,
+    Dad, Uncle, ...); the family's own names live in scenes.json (each find's "own", the child's name in
+    "own_for", and "was" for a find whose id was renamed), which never goes in the repo. The link carries
+    them in the part of the address after #, which browsers never send to the server; the page saves them
+    on the device and takes them out of the address bar. Open it once on each of her devices."""
+    import base64
+    book = load_book()
+    me = {'names': {fd['id']: fd['own'] for fd in book['finds'] if fd.get('own')},
+          'was': {fd['was']: fd['id'] for fd in book['finds'] if fd.get('was')}}
+    if book.get('own_for'):
+        me['for'] = book['own_for']
+    raw = json.dumps(me, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    print(args.site.rstrip('/') + '/#me=' + base64.urlsafe_b64encode(raw).decode('ascii').rstrip('='))
 
 def cmd_who(args):
     """Page 3 (recto): every find, large, with its name."""
@@ -864,7 +885,7 @@ def cmd_who(args):
         cy = mm(top + pitch_y * r) + dia // 2
         pt = portrait(fd, dia, ring)
         can.alpha_composite(pt, (int(cx - dia / 2), int(cy - dia / 2)))
-        label_lines(d, fd['label'], f_name, cx, cy + dia / 2 + mm(2.5), mm((x1 - x0) / cols - 3), mm(8))
+        label_lines(d, fd.get('own', fd['label']), f_name, cx, cy + dia / 2 + mm(2.5), mm((x1 - x0) / cols - 3), mm(8))
     out = can.convert('RGB')
     save_jpg(out, 'pages/p03_who.jpg')
     out.resize((W // 4, H // 4), Image.LANCZOS).save('preview/p03_who.jpg', quality=88)
@@ -1079,6 +1100,7 @@ def main():
     sl.set_defaults(fn=cmd_slots)
     for name, fn in (('who', cmd_who), ('answers', cmd_answers), ('pdf', cmd_pdf)):
         p = sub.add_parser(name); p.set_defaults(fn=fn)
+    lk = sub.add_parser('link'); lk.add_argument('--site', default='https://seek.mikeohalloran.au/'); lk.set_defaults(fn=cmd_link)
     args = ap.parse_args()
     if args.cmd == 'cut':
         args.poses = [s.strip() for s in args.poses.split(',') if s.strip()]
