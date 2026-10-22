@@ -623,6 +623,9 @@ PAGE_PROPS.update({25: ['prop_wall', 'prop_jars', 'prop_bojagi', 'prop_sacks'],
                    27: ['prop_wall', 'prop_jars', 'prop_sacks'],          # the guard
                    28: ['prop_jars', 'prop_bojagi', 'prop_wall'],         # the banquet
                    29: ['prop_pine', 'prop_wall', 'prop_jars']})          # the garden
+PAGE_PROPS.update({30: ['prop_bush', 'prop_plant', 'prop_boxes'],         # the Han River picnic
+                   31: ['prop_crate', 'prop_boxes'],                      # the ice-fishing festival: nothing green on the ice
+                   32: ['prop_boxes', 'prop_crate']})                     # school sports day: kit boxes on a dirt field
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
