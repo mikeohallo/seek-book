@@ -612,11 +612,17 @@ COSTUMES = {'hanbok': [   # people lookalikes in hanbok (sheets decoys_hanbok_a 
 ]}
 for _co in COSTUMES:
     WEB_SIZE.update({costume_cut(c, _co): v for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
-# palace props (sheet props_palace): onggi jars, wrapped New Year gifts, a low stone wall, rice sacks
-# (the drum's stand has gaps you'd see through, and a pine shrub on a stone courtyard looks wrong: not used)
+# palace props (sheet props_palace): onggi jars, wrapped New Year gifts, a low stone wall, rice sacks, and
+# the pine shrub for the garden page (on a stone courtyard it looks wrong; the drum's stand has gaps you'd
+# see through, so it isn't used)
 PROPS.update({'prop_jars': (.50, False, True, False), 'prop_bojagi': (.42, False, True, False),
-              'prop_wall': (.36, True, True, False), 'prop_sacks': (.40, True, True, False)})
-PAGE_PROPS[25] = ['prop_wall', 'prop_jars', 'prop_bojagi', 'prop_sacks']
+              'prop_wall': (.36, True, True, False), 'prop_sacks': (.40, True, True, False),
+              'prop_pine': (.50, False, True, False)})
+PAGE_PROPS.update({25: ['prop_wall', 'prop_jars', 'prop_bojagi', 'prop_sacks'],
+                   26: ['prop_sacks', 'prop_jars', 'prop_bojagi'],        # the procession: market things
+                   27: ['prop_wall', 'prop_jars', 'prop_sacks'],          # the guard
+                   28: ['prop_jars', 'prop_bojagi', 'prop_wall'],         # the banquet
+                   29: ['prop_pine', 'prop_wall', 'prop_jars']})          # the garden
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
