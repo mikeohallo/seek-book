@@ -329,15 +329,22 @@ function boxOf(p) {
   return [(p.x - w / 2) / MW, (p.y - p.h) / MH, (p.x + w / 2) / MW, p.y / MH];
 }
 const meets = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+// A page can dress the family differently (data.json "costumes", the page's "co", first the palace pages in
+// hanbok): its own cut-out for every pose, sitting and peeking, its own lookalikes for people, and its own
+// faces on the strip. Everything else (spots, sizes, props, toys) works the same.
+const costume = sp => (sp && sp.co && DATA.costumes && DATA.costumes[sp.co]) || null;
+const posesOf = (sp, id) => { const c = costume(sp); return (c && c.poses[id]) || DATA.poses[id]; };
+const hardOf = sp => { const c = costume(sp); return c && c.hard ? { ...DATA.hard, ...c.hard } : DATA.hard; };
+const faceOf = (sp, id) => { const c = costume(sp); return (c && c.portraits[id]) || DATA.byId[id].portrait; };
 function shuffled(sp, seed) {
   const r = rng(seed), A = sp.A;
   const slots = sp.slots.map(([x, y, k, H]) => ({ x, y, k, H: H || A }));
   // the pair first (only a wide spot fits them), then the people, then the toys; random order within each
-  const rank = id => ({ w: 0, pw: 1, o: 2 })[DATA.poses[id][0].k];
+  const rank = id => ({ w: 0, pw: 1, o: 2 })[posesOf(sp, id)[0].k];
   const ids = sp.finds.map(f => f.id).map(id => [rank(id), r(), id]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(v => v[2]);
   const used = [], out = [];
   for (const id of ids) {
-    const poses = DATA.poses[id], pose = poses[Math.floor(r() * poses.length)];
+    const poses = posesOf(sp, id), pose = poses[Math.floor(r() * poses.length)];
     const free = slots.filter(s => pose.k.includes(s.k) && !used.some(u => u.s === s))
       .map(s => { const h = Math.round(Math.max(pose.f * s.H, (pose.m || 0) * A) * 10) / 10; return { s, h, box: boxOf({ cut: pose.cut, x: s.x, y: s.y, h }) }; })
       .filter(c => inside(c.box));
@@ -384,7 +391,7 @@ function unit(pose, mode, s, prop, g = 1) {
   return { cut: pose.cut, x: s.x, y: fb, h, ibox: fbox, box, ubox: union(fbox, pbox), prop: { cut: prop.cut, ibox: pbox } };
 }
 function hardRound(sp, seed, lv) {
-  const r = rng(seed ^ 0x5bd1e995), A = sp.A, L = LEVELS[lv], HD = DATA.hard;
+  const r = rng(seed ^ 0x5bd1e995), A = sp.A, L = LEVELS[lv], HD = hardOf(sp);
   const slots = sp.slots.map(([x, y, k, H, g]) => ({ x, y, k, H: H || A, A, g: !!g }));
   const props = (sp.pr || []).map(n => HD.props[n]).filter(Boolean).map(p => ({ ...p, used: 0, o: r() }));
   const pick = (arr, k) => { const a = arr.slice(), out = []; while (out.length < k && a.length) out.push(a.splice(Math.floor(r() * a.length), 1)[0]); return out; };
@@ -398,7 +405,7 @@ function hardRound(sp, seed, lv) {
   const hidden = new Set(pick(canHide, L.hide + (r() < L.extra ? 1 : 0)));
   if (lv >= 3 && props.some(p => p.flat) && ids.includes('unicorn') && r() < .5) hidden.add('unicorn');
   const sitting = new Set(pick(people.filter(id => !hidden.has(id)), L.sit));
-  const rank = id => ({ w: 0, pw: 1, o: 2 })[DATA.poses[id][0].k];
+  const rank = id => ({ w: 0, pw: 1, o: 2 })[posesOf(sp, id)[0].k];
   const order = ids.map(id => [rank(id), r(), id]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(v => v[2]);
   const used = [], out = [], decoys = [];
   function place(specs, kinds) {
@@ -422,7 +429,7 @@ function hardRound(sp, seed, lv) {
     return null;
   }
   for (const id of order) {
-    const poses = DATA.poses[id], pose = poses[Math.floor(r() * poses.length)], kinds = pose.k, g = poses[0].f;
+    const poses = posesOf(sp, id), pose = poses[Math.floor(r() * poses.length)], kinds = pose.k, g = poses[0].f;
     const pair = id === 'grandparents', specs = [];
     if (hidden.has(id)) {
       const peek = HD.peek[id];
@@ -805,7 +812,7 @@ function buildStrip() {
   for (const f of page.finds) {
     const fd = DATA.byId[f.id];
     const b = document.createElement('button'); b.className = 'face'; b.dataset.id = f.id; b.style.setProperty('--fc', fd.colour);
-    b.innerHTML = `<img alt="" src="${fd.portrait}"><span></span><i class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>`;
+    b.innerHTML = `<img alt="" src="${faceOf(page, f.id)}"><span></span><i class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>`;
     b.querySelector('span').textContent = fd.label;
     let timer = null, held = false;
     const cancel = () => { clearTimeout(timer); timer = null; b.classList.remove('holding'); };
@@ -871,7 +878,7 @@ function openPage(n, after) {
 function finale() {
   rainbow($('finTitle'), 'You found everyone!', 2);
   const faces = $('finFaces'); faces.textContent = '';
-  for (const f of page.finds) { const i = document.createElement('img'); i.alt = ''; i.src = DATA.byId[f.id].portrait; faces.append(i); }
+  for (const f of page.finds) { const i = document.createElement('img'); i.alt = ''; i.src = faceOf(page, f.id); faces.append(i); }
   const next = DATA.spreads.find(s => s.n > page.n);
   $('finNext').hidden = !next;
   $('finale').hidden = false;

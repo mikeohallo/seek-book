@@ -15,6 +15,9 @@ Private names: the plain page shows only the generic labels; a #me= link sets a 
 the device, carries ticks over from a renamed id and leaves the address bar clean; a broken link does nothing.
 Harder rounds (when data.json has them): levels 1, 2, 3 in turn; lookalikes, hiding and sitting at level 3,
 nothing overlaps, a lookalike tap says "Nearly!" and doesn't count, every find taps, Start again resets the level.
+Costumes (when data.json has them): on a page that dresses the family differently, the people are in costume in
+the book's places, a new round and a level-3 round, people lookalikes are the costume's own, the strip and the
+finale show the costume's faces, and the toys and the other pages are unchanged.
 """
 import asyncio, json, os, subprocess, sys, time
 from playwright.async_api import async_playwright
@@ -324,6 +327,63 @@ async def hard(name, viewport, touch):
         await b.close()
 
 
+async def costumes(name, viewport, touch):
+    """Costumes: on a page dressed differently ("co"), every person is that costume's cut-out in the book's
+    places, in a new round and in a level-3 round (sitting and peeking too), people lookalikes are the
+    costume's own, and the strip and the finale show the costume's faces; the toys and every other page
+    stay as they are."""
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx = await b.new_context(viewport=viewport, has_touch=touch, is_mobile=touch, device_scale_factor=1)
+        page = await ctx.new_page()
+        errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        tap = page.touchscreen.tap if touch else page.mouse.click
+        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        people = ['girl', 'dad', 'mum', 'grandma', 'uncle', 'grandparents']
+        plain = next(sp for sp in DATA['spreads'] if not sp.get('co'))
+        await page.goto(f"http://localhost:{PORT}/#page{plain['n']}"); await page.reload()
+        await page.wait_for_function("document.getElementById('loading').hidden")
+        srcs = await page.evaluate("() => [...document.querySelectorAll('#layer img.fam, #strip img')].map(e => e.getAttribute('src'))")
+        for co in DATA.get('costumes', {}):
+            assert not any(f'_{co}' in s for s in srcs), f"page {plain['n']}: a {co} picture on an everyday page"
+        for sp in [s for s in DATA['spreads'] if s.get('co')]:
+            n, co = sp['n'], sp['co']
+            C = DATA['costumes'][co]
+            own_decoys = {d['cut'] for d in C['hard']['decoys'] if d['like'] in people} if 'hard' in C else set()
+            for rnd in ('book', 'new', 'level 3'):
+                if rnd == 'new':
+                    await page.evaluate(f"() => {{ delete store.plays[K({n})]; newRound({n}); persist(); }}")
+                if rnd == 'level 3':
+                    await page.evaluate(f"() => {{ store.plays[K({n})] = 2; newRound({n}); persist(); }}")
+                await page.goto(f'http://localhost:{PORT}/#page{n}'); await page.reload()
+                await page.wait_for_function("document.getElementById('loading').hidden")
+                info = await page.evaluate("""() => ({ finds: page.finds.map(f => [f.id, f.cut]), decoys: page.decoys.map(d => [d.like, d.cut]),
+                    faces: [...document.querySelectorAll('#strip .face')].map(e => [e.dataset.id, e.querySelector('img').getAttribute('src')]),
+                    imgs: [...document.querySelectorAll('#layer img.fam:not(.decoy):not(.prop)')].map(e => e.getAttribute('src')) })""")
+                for fid, cut in info['finds']:
+                    if fid in people:
+                        assert f'_{co}_' in cut, f'page {n} ({rnd}): {fid} is {cut}, not in {co}'
+                    else:
+                        assert f'_{co}' not in cut, f'page {n} ({rnd}): the toy {fid} changed to {cut}'
+                assert sum(f'_{co}_' in s for s in info['imgs']) == sum(f in people for f, _ in info['finds']), f'page {n} ({rnd}): pictures not in {co}'
+                for like, cut in info['decoys']:
+                    assert (cut in own_decoys) == (like in people), f'page {n} ({rnd}): lookalike {cut} for {like}'
+                for fid, src in info['faces']:
+                    want = C['portraits'].get(fid) or next(f['portrait'] for f in DATA['finds'] if f['id'] == fid)
+                    assert src == want, f'page {n} ({rnd}): face {fid} is {src}'
+                if rnd == 'level 3':
+                    assert info['decoys'], f'page {n}: no lookalikes at level 3'
+                    print(f"  page {n} ({co}): level 3 with {len(info['decoys'])} lookalikes, poses {sorted({c.rsplit('_', 1)[1] for f, c in info['finds'] if f in people})}")
+            got = await tap_all(page, tap); await page.wait_for_timeout(1500)
+            assert await page.is_visible('#finale'), f'page {n}: no finale'
+            fin = await page.evaluate("() => [...document.querySelectorAll('#finFaces img')].map(e => e.getAttribute('src'))")
+            assert all(s in C['portraits'].values() for s in fin[:len(people)]), f'page {n}: everyday faces in the finale'
+        assert not errs, errs
+        print(f'{name}: costume checks passed')
+        await b.close()
+
+
 async def main():
     if '--rounds-only' not in sys.argv:
         await run('phone 390 x 760', {'width': 390, 'height': 760}, True)
@@ -333,6 +393,8 @@ async def main():
     await names('phone 390 x 760', {'width': 390, 'height': 760}, True)
     if json.load(open(os.path.join(ROOT, 'data.json'))).get('hard'):
         await hard('phone 390 x 760', {'width': 390, 'height': 760}, True)
+    if json.load(open(os.path.join(ROOT, 'data.json'))).get('costumes'):
+        await costumes('phone 390 x 760', {'width': 390, 'height': 760}, True)
 
 if __name__ == '__main__':
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT],

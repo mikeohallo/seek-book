@@ -583,6 +583,40 @@ DECOYS = [
     ('dec_unicorn_white', 'unicorn', .49, 'o'),       # a white unicorn
 ]
 SLOT_TEST = {'p': ('uncle_walk', 1.0), 'w': ('grandparents_walk', .96), 'o': ('obj_teddy_lie', .27)}
+# Costumes (22 Oct 2026): a page can dress the family differently ("co" in its scenes.json entry), first
+# "hanbok" for the palace pages. Each costume has its own sheets cut as <who>_<costume>_<pose>, drawn on the
+# same layout as the everyday sheets (all four poses measure within 0.5% of their everyday twins), so a
+# costume cut-out takes its twin's sizes, sitting and peeking shares. The toys stay as they are. Its
+# lookalikes are its own for people (strangers in the same kind of clothes) and the everyday ones for toys.
+PEOPLE_IDS = ('girl', 'dad', 'mum', 'grandma', 'uncle', 'grandparents')
+
+def costume_cut(cut, co):
+    """The costume twin of an everyday cut-out (girl_walk -> girl_hanbok_walk); toys and props unchanged."""
+    who, _, pose = cut.rpartition('_')
+    return f'{who}_{co}_{pose}' if co and who in PEOPLE_IDS else cut
+
+COSTUMES = {'hanbok': [   # people lookalikes in hanbok (sheets decoys_hanbok_a and decoys_hanbok_b v2)
+    ('dechb_girl_yellow', 'girl', .794, 'p'),       # the girl's hair, a yellow jacket and red skirt
+    ('dechb_girl_plait', 'girl', .76, 'p'),         # the girl's lavender and navy hanbok, one long black plait
+    ('dechb_dad_red', 'dad', 1.0, 'p'),             # Dad's hair and beard (no grey patch), dark red jacket
+    ('dechb_dad_shaven', 'dad', 1.06, 'p'),         # Dad's hair and navy hanbok, no beard
+    ('dechb_mum_bun', 'mum', .97, 'p'),             # Mum's bun, no glasses, pale blue jacket
+    ('dechb_mum_loose', 'mum', .9, 'p'),            # Mum's glasses and hanbok, long loose hair
+    ('dechb_mum_navy', 'mum', .9, 'p'),             # Mum's glasses, long loose hair, navy jacket and trousers
+    ('dechb_grandma_curly', 'grandma', .95, 'p'),   # grey curls, light blue hanbok
+    ('dechb_grandma_dark', 'grandma', 1.0, 'p'),    # Grandma's flowery green hanbok, dark hair
+    ('dechb_uncle_nospecs', 'uncle', 1.06, 'p'),    # the uncle's hair and long grey coat, no glasses
+    ('dechb_uncle_red', 'uncle', 1.06, 'p'),        # the uncle's glasses, red jacket, no coat
+    ('dechb_pair_glasses', 'grandparents', 1.0, 'w'),   # a black bob and glasses, red and green
+    ('dechb_pair_walk', 'grandparents', .98, 'w'),      # grey hair, plum and brown
+]}
+for _co in COSTUMES:
+    WEB_SIZE.update({costume_cut(c, _co): v for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
+# palace props (sheet props_palace): onggi jars, wrapped New Year gifts, a low stone wall, rice sacks
+# (the drum's stand has gaps you'd see through, and a pine shrub on a stone courtyard looks wrong: not used)
+PROPS.update({'prop_jars': (.50, False, True, False), 'prop_bojagi': (.42, False, True, False),
+              'prop_wall': (.36, True, True, False), 'prop_sacks': (.40, True, True, False)})
+PAGE_PROPS[25] = ['prop_wall', 'prop_jars', 'prop_bojagi', 'prop_sacks']
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
@@ -780,8 +814,17 @@ def cmd_web(args):
     hard_cuts = ({c for c, _ in HARD_SIT.values()} | {c for c, _ in HARD_PEEK.values()} | set(PROPS) |
                  {d[0] for d in DECOYS})
     have_hard = bool(DECOYS) and all(os.path.exists(os.path.join('cutouts', c + '.png')) for c in hard_cuts)
+    costumes = sorted({sd['co'] for sd in book['spreads'] if sd.get('co')})
+    for co in costumes:
+        if co not in COSTUMES:
+            sys.exit(f'costume "{co}" is not in COSTUMES')
+    co_cuts = {costume_cut(c, co) for co in costumes
+               for c in {c for poses in ROUND_POSES.values() for c, _, _ in poses} |
+                        ({c for c, _ in HARD_SIT.values()} | {c for c, _ in HARD_PEEK.values()} if have_hard else set())}
+    co_cuts |= {d[0] for co in costumes for d in COSTUMES[co]} if have_hard else set()
     cut_names = sorted({p['cut'] for sd in book['spreads'] for p in sd.get('places', [])} |
-                       {c for poses in ROUND_POSES.values() for c, _, _ in poses} | (hard_cuts if have_hard else set()))
+                       {c for poses in ROUND_POSES.values() for c, _, _ in poses} | (hard_cuts if have_hard else set()) |
+                       co_cuts)
     for name in cut_names:
         cut = load_cut(name)
         hpx = args.cut_height
@@ -798,6 +841,28 @@ def cmd_web(args):
             'decoys': [{'cut': c, 'like': like, 'f': f, 'k': k, 'flip': True} for c, like, f, k in DECOYS]}
     else:
         print('harder rounds: lookalike or prop cut-outs missing, not exported')
+    # costumes: the same poses with each person's costume cut-out, the costume's own lookalikes for people
+    # (the everyday ones for toys), and key-strip faces cut from the costume's cut-outs
+    if costumes:
+        data['costumes'] = {}
+    for co in costumes:
+        faces = {}
+        for fd in book['finds']:
+            if fd['portrait'] == costume_cut(fd['portrait'], co):
+                continue                                  # a toy: the everyday face
+            pt = portrait(dict(fd, portrait=costume_cut(fd['portrait'], co)), 240, 14)
+            path = os.path.join(out, 'portraits', f"{fd['id']}_{co}.webp")
+            pt.save(path, quality=90, method=6)
+            faces[fd['id']] = f"portraits/{fd['id']}_{co}.webp?v={file_ver(path)}"
+        entry = {'poses': {fid: [dict(p, cut=costume_cut(p['cut'], co)) for p in poses] for fid, poses in data['poses'].items()},
+                 'portraits': faces}
+        if have_hard:
+            entry['hard'] = {
+                'sit': {fid: dict(v, cut=costume_cut(v['cut'], co)) for fid, v in data['hard']['sit'].items()},
+                'peek': {fid: dict(v, cut=costume_cut(v['cut'], co)) for fid, v in data['hard']['peek'].items()},
+                'decoys': [{'cut': c, 'like': like, 'f': f, 'k': k, 'flip': True} for c, like, f, k in COSTUMES[co]] +
+                          [d for d in data['hard']['decoys'] if d['like'] not in PEOPLE_IDS]}
+        data['costumes'][co] = entry
     for sd in book['spreads']:
         if not os.path.exists(os.path.join('scenes', sd['scene'])):
             print(f'spread {sd["n"]}: scene file missing, skipped'); continue
@@ -837,7 +902,8 @@ def cmd_web(args):
                                 'img': f"scenes/s{n:02d}.webp?v={file_ver(os.path.join(out, 'scenes', f's{n:02d}.webp'))}",
                                 'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
                                 'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': web_slots,
-                                **({'pr': PAGE_PROPS.get(n, [])} if have_hard else {})})
+                                **({'pr': PAGE_PROPS.get(n, [])} if have_hard else {}),
+                                **({'co': sd['co']} if sd.get('co') else {})})
         kb = os.path.getsize(os.path.join(out, 'scenes', f's{n:02d}.webp')) // 1024
         print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {len(slots)} spots for new rounds, {wpx} x {hpx} px, {kb} KB')
     with open(os.path.join(out, 'data.json'), 'w', encoding='utf-8') as fh:
