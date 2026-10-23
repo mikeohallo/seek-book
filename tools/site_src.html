@@ -27,6 +27,16 @@
   --shadow: 0 2px 0 rgba(58, 40, 82, .08), 0 10px 24px rgba(58, 40, 82, .10);
   color-scheme: light;
 }
+/* Korean: rounded Hangul fonts, loaded only when Korean is on (the Latin fonts stay for numbers and names) */
+:root:lang(ko) {
+  --font-display: 'Jua', 'Fredoka', 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Gowun Dodum', 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+:root:lang(ko) .title .l { -webkit-text-stroke-width: .1em; }
+:root:lang(ko) body { word-break: keep-all; }
+.langbar { display: flex; justify-content: flex-end; margin-bottom: -12px; }
+.lang-btn { border: 0; border-radius: 999px; padding: 8px 16px; background: var(--card); box-shadow: var(--shadow); font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink); }
+.lang-btn:lang(ko) { font-family: 'Jua', 'Fredoka', ui-rounded, system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; background: var(--paper); color: var(--ink); }
@@ -191,21 +201,22 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 }
 </style>
 
-<main class="home" id="home" aria-label="Pages">
+<main class="home" id="home" aria-label="Pages" data-ta="aria_home">
+  <div class="langbar"><button class="lang-btn" id="langBtn" lang="ko" aria-label="Show the game in Korean">한국어</button></div>
   <h1 class="title" id="homeTitle"></h1>
-  <p class="lede">Tap everyone you can find. Stuck? Press and hold a face for a clue.</p>
-  <section class="pages" id="pages" aria-label="Pages to play"></section>
+  <p class="lede" data-t="lede">Tap everyone you can find. Stuck? Press and hold a face for a clue.</p>
+  <section class="pages" id="pages" aria-label="Pages to play" data-ta="aria_pages"></section>
   <section aria-labelledby="whoHead" style="display:flex;flex-direction:column;gap:10px">
-    <h2 class="h2" id="whoHead">Who's hiding on every page</h2>
+    <h2 class="h2" id="whoHead" data-t="who_head">Who's hiding on every page</h2>
     <div class="who" id="who"></div>
   </section>
-  <p class="foot">The same pictures as the printed book. Nothing you do here leaves this device.</p>
-  <p class="foot"><a id="morePlay" href="https://play.mikeohalloran.au/" style="display:inline-block;padding:8px 16px;border-radius:999px;background:var(--paper-deep, #F6EBD6);color:var(--ink-soft, #6E5C86);font-family:Fredoka, sans-serif;font-weight:600;font-size:16px;text-decoration:none">More to play &rsaquo;</a></p>
+  <p class="foot" data-t="foot">The same pictures as the printed book. Nothing you do here leaves this device.</p>
+  <p class="foot"><a id="morePlay" href="https://play.mikeohalloran.au/" style="display:inline-block;padding:8px 16px;border-radius:999px;background:var(--paper-deep, #F6EBD6);color:var(--ink-soft, #6E5C86);font-family:var(--font-display);font-weight:600;font-size:16px;text-decoration:none" data-t="more_play">More to play &rsaquo;</a></p>
 </main>
 
-<section class="play" id="play" hidden aria-label="Find everyone">
+<section class="play" id="play" hidden aria-label="Find everyone" data-ta="aria_play">
   <header class="bar">
-    <button class="icon-btn" id="back" aria-label="All pages"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="icon-btn" id="back" aria-label="All pages" data-ta="aria_back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <h1 class="title" id="playTitle"></h1>
     <span class="count" id="count" aria-live="polite">0/9</span>
     <button class="icon-btn" id="sound" aria-label="Sound on" aria-pressed="true"></button>
@@ -216,25 +227,25 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
         <img id="scene" alt="" draggable="false">
         <svg id="marks" aria-hidden="true"><defs id="defs"></defs></svg>
       </div>
-      <p class="loading" id="loading">Opening the page…</p>
+      <p class="loading" id="loading" data-t="loading">Opening the page…</p>
       <div class="say" id="say" role="status" aria-live="polite"></div>
       <div class="zoom">
-        <button class="icon-btn" id="zin" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-        <button class="icon-btn" id="zout" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-        <button class="icon-btn" id="zfit" aria-label="Show the whole page"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button class="icon-btn" id="zin" aria-label="Zoom in" data-ta="aria_zoom_in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="icon-btn" id="zout" aria-label="Zoom out" data-ta="aria_zoom_out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button class="icon-btn" id="zfit" aria-label="Show the whole page" data-ta="aria_zoom_fit"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       </div>
     </div>
   </div>
-  <nav class="strip" id="strip" aria-label="Who to find"></nav>
+  <nav class="strip" id="strip" aria-label="Who to find" data-ta="aria_strip"></nav>
 </section>
 
 <div class="finale" id="finale" hidden role="dialog" aria-modal="true" aria-labelledby="finTitle">
   <div class="box">
     <h2 class="title" id="finTitle"></h2>
     <div class="faces" id="finFaces"></div>
-    <button class="btn primary" id="finNext">Next page <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-    <button class="btn" id="finAgain">Hide everyone again <svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M18 14l3 3-3 3M3 17h4c1.6 0 2.8-1.5 3.8-3.3M13.2 10.3C14.2 8.5 15.4 7 17 7h4M18 4l3 3-3 3"/></svg></button>
-    <button class="btn" id="finHome">All pages</button>
+    <button class="btn primary" id="finNext"><span data-t="next_page">Next page</span> <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button class="btn" id="finAgain"><span data-t="hide_again">Hide everyone again</span> <svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M18 14l3 3-3 3M3 17h4c1.6 0 2.8-1.5 3.8-3.3M13.2 10.3C14.2 8.5 15.4 7 17 7h4M18 4l3 3-3 3"/></svg></button>
+    <button class="btn" id="finHome" data-t="all_pages">All pages</button>
   </div>
 </div>
 
@@ -247,12 +258,17 @@ const COLOURS = ['#EC6AA8', '#F4882C', '#F2C828', '#68B242', '#54A6E2', '#A880D6
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let DATA = null;
+// Every piece of text the game shows lives in lang/en.json and lang/ko.json (one file per language, the same
+// keys in each); make_site.py builds them into the page here. KO_FONT is the Korean font, cut down to the
+// letters the game uses, and only loaded when Korean is on.
+const LANGS = /*LANGS*/null/*/LANGS*/;
+const KO_FONT = /*KO_FONT*/''/*/KO_FONT*/;
 
 // ------------------------------------------------------------- storage ----
 const KEY = 'seek-book.v1';
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null, names: d.names || {} }; }
-  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null, names: {} }; }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null, names: d.names || {}, lang: d.lang === 'ko' ? 'ko' : 'en' }; }
+  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null, names: {}, lang: 'en' }; }
 }
 const store = load();
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
@@ -284,6 +300,29 @@ addEventListener('hashchange', () => { if (/^#me=/.test(location.hash)) location
 function ownerName() {
   let f = null; try { f = new URLSearchParams(location.search).get('for'); } catch (e) {}
   return (f || store.owner || DEFAULT_OWNER || '').trim().slice(0, 20);
+}
+// ---------------------------------------------------------------- text ----
+const LANG = () => (LANGS && LANGS[store.lang]) || (LANGS && LANGS.en) || { ui: {}, finds: {}, pages: {} };
+// Korean adds a small word after a name that depends on its last sound: {name|을/를} gives 을 after a final
+// consonant and 를 after a vowel (으로/로: ㄹ counts as a vowel). Names in Latin letters go by their last letter.
+function josa(word, a, b) {
+  const w = String(word).trim(), c = w.charCodeAt(w.length - 1);
+  if (c >= 0xAC00 && c <= 0xD7A3) { const j = (c - 0xAC00) % 28; return j === 0 || (j === 8 && a === '으로') ? b : a; }
+  return /[aeiouy]$/i.test(w) ? b : a;
+}
+function t(key, v = {}) {
+  const s = LANG().ui[key] ?? (LANGS && LANGS.en.ui[key]) ?? key;
+  return s.replace(/\{(\w+)(?:\|([^/}]+)\/([^}]+))?\}/g, (m, k, a, b) => { const x = String(v[k] ?? ''); return a ? x + josa(x, a, b) : x; });
+}
+const titleOf = sp => LANG().pages[String(sp.n)] || sp.title;
+function applyLang() {
+  const ko = store.lang === 'ko';
+  document.documentElement.lang = ko ? 'ko' : 'en-AU';
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
+  document.querySelectorAll('[data-ta]').forEach(e => e.setAttribute('aria-label', t(e.dataset.ta)));
+  const b = $('langBtn'); b.textContent = t('lang_switch'); b.setAttribute('aria-label', t('lang_switch_aria')); b.lang = ko ? 'en' : 'ko';
+  if (ko && KO_FONT && !$('koFont')) { const l = document.createElement('link'); l.id = 'koFont'; l.rel = 'stylesheet'; l.href = KO_FONT; document.head.append(l); }
+  drawSound();
 }
 // progress is kept per picture: each spread's key changes whenever its picture or hiding places change,
 // so ticks from an old version of a page never show up on a new one
@@ -474,7 +513,7 @@ function rainbow(el, text, start = 0) {
     el.append(w);
   });
 }
-const bookName = () => `${ownerName() ? ownerName() + "'s" : 'My'} Seek and Find`;
+const bookName = () => ownerName() ? t('book_owner', { owner: ownerName() }) : t('book_my');
 
 // --------------------------------------------------------------- sound ----
 let actx = null;
@@ -501,7 +540,7 @@ const chime = () => notes([659.25, 830.61, 987.77, 1318.5]);
 const fanfare = () => notes([523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5], .11, .5, .14);
 function drawSound() {
   const b = $('sound');
-  b.setAttribute('aria-pressed', String(store.sound)); b.setAttribute('aria-label', store.sound ? 'Sound on' : 'Sound off');
+  b.setAttribute('aria-pressed', String(store.sound)); b.setAttribute('aria-label', t(store.sound ? 'aria_sound_on' : 'aria_sound_off'));
   b.innerHTML = store.sound
     ? '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>'
     : '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM17 9l5 6M22 9l-5 6"/></svg>';
@@ -548,20 +587,21 @@ function renderHome() {
     const got = foundIn(sp.n), total = sp.finds.length, done = starred(sp.n);
     const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '4px';
     const b = document.createElement('button'); b.className = 'page-card';
-    b.setAttribute('aria-label', `${sp.title}: ${got.size} of ${total} found${done ? ', star earned' : ''}`);
+    b.setAttribute('aria-label', t(done ? 'card_aria_star' : 'card_aria', { title: titleOf(sp), got: got.size, total }));
     const dots = sp.finds.map(f => {
       const fd = DATA.byId[f.id];
       return `<i class="${got.has(f.id) ? 'on' : ''}" style="${got.has(f.id) ? 'background:' + fd.colour : ''}"></i>`;
     }).join('');
     b.innerHTML = `<div class="pic"><img alt="" src="${sp.thumb}" loading="lazy">${done ? `<span class="star">${STAR}</span>` : ''}</div>
-      <div class="meta"><span class="name"></span><span class="dots">${dots}<b>${got.size} of ${total}</b></span></div>`;
-    b.querySelector('.name').textContent = sp.title;
+      <div class="meta"><span class="name"></span><span class="dots">${dots}<b></b></span></div>`;
+    b.querySelector('.name').textContent = titleOf(sp);
+    b.querySelector('.dots b').textContent = t('card_of', { got: got.size, total });
     b.addEventListener('click', () => openPage(sp.n));
     wrap.append(b);
     if (got.size || roundOf(sp.n)) {
-      const a = document.createElement('button'); a.className = 'again'; a.textContent = 'Start this page again';
+      const a = document.createElement('button'); a.className = 'again'; a.textContent = t('start_again');
       a.addEventListener('click', () => {
-        if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = 'Tap again to clear it'; setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
+        if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = t('tap_again'); setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
         againArmed = null; for (const k of ['found', 'rounds', 'plays', 'lv']) delete store[k][K(sp.n)]; persist(); renderHome();
       });
       wrap.append(a);
@@ -705,10 +745,10 @@ function tap(px, py) {
   if (!best) {
     // a lookalike: close, but not who it looks like
     const d = (page.decoys || []).find(q => { const b = padded(q); return Math.abs(ix - b.cx) <= b.hw * .8 && Math.abs(iy - b.cy) <= b.hh * .8; });
-    if (d) { say(`Nearly! That's not ${DATA.byId[d.like].say}.`); bumpFace(d.like); return; }
+    if (d) { say(t('say_nearly', { name: DATA.byId[d.like].say })); bumpFace(d.like); return; }
     miss(px, py); return;
   }
-  if (got.has(best.id)) { say(`You already found ${DATA.byId[best.id].say}!`); bumpFace(best.id); return; }
+  if (got.has(best.id)) { say(t('say_already', { name: DATA.byId[best.id].say })); bumpFace(best.id); return; }
   found(best, px, py);
 }
 function miss(px, py) {
@@ -726,7 +766,7 @@ function found(f, px, py) {
   const r = stage.getBoundingClientRect();
   burst(r.left + px, r.top + py);
   chime();
-  say(`You found ${DATA.byId[f.id].say}!`);
+  say(t('say_found', { name: DATA.byId[f.id].say }));
   updateStrip(f.id);
   if (list.length >= page.finds.length) setTimeout(finale, 1100);
 }
@@ -757,7 +797,7 @@ function updateStrip(justFound) {
   $('strip').querySelectorAll('.face').forEach(b => {
     const done = got.has(b.dataset.id);
     b.classList.toggle('done', done);
-    b.setAttribute('aria-label', `${DATA.byId[b.dataset.id].label}${done ? ', found' : ', still hiding. Press and hold for a clue'}`);
+    b.setAttribute('aria-label', t(done ? 'face_found' : 'face_hiding', { label: DATA.byId[b.dataset.id].label }));
   });
   $('count').textContent = `${got.size}/${page.finds.length}`;
   if (justFound) bumpFace(justFound);
@@ -766,7 +806,7 @@ function updateStrip(justFound) {
 // clues: press and hold a face, and a soft glow shows roughly where they are
 function hint(id) {
   const f = page.finds.find(q => q.id === id); if (!f) return;
-  if (foundIn(page.n).has(id)) { say(`You found ${DATA.byId[id].say} already!`); return; }
+  if (foundIn(page.n).has(id)) { say(t('say_found_before', { name: DATA.byId[id].say })); return; }
   const fd = DATA.byId[id];
   const [x0, y0, x1, y1] = f.box;
   const R = view.W * .11;
@@ -788,7 +828,7 @@ function hint(id) {
     const s2 = Math.min(view.s, Math.max(minS(), Math.min(w, h) / (R * 3)));
     animateTo(s2, w / 2 - gx * s2, h / 2 - gy * s2, 450);
   }
-  say(`Look for ${DATA.byId[id].say} in the glow!`);
+  say(t('say_glow', { name: DATA.byId[id].say }));
 }
 function buildStrip() {
   const strip = $('strip'); strip.textContent = '';
@@ -809,7 +849,7 @@ function buildStrip() {
     b.addEventListener('click', () => {
       if (held) { held = false; return; }
       bumpFace(f.id);
-      say(foundIn(page.n).has(f.id) ? `You found ${fd.say}!` : `Can you find ${fd.say}?`);
+      say(t(foundIn(page.n).has(f.id) ? 'say_found' : 'say_can_you', { name: fd.say }));
     });
     b.addEventListener('keydown', e => { if (e.key === 'h' || e.key === 'H') hint(f.id); });
     strip.append(b);
@@ -819,12 +859,12 @@ let openToken = 0;
 function openPage(n, after) {
   const sp = DATA.spreads.find(s => s.n === n); if (!sp) return;
   // a page she has already finished opens straight into a new round: same picture, everyone somewhere new
-  if (finished(n)) { newRound(n); after = after || (() => say("Everyone's hiding again!")); }
+  if (finished(n)) { newRound(n); after = after || (() => say(t('say_hiding_again'))); }
   const finds = layout(sp, roundOf(n), levelOf(n));
   page = { ...sp, finds, decoys: finds.decoys };
   $('home').hidden = true; $('play').hidden = false; $('finale').hidden = true;
-  rainbow($('playTitle'), page.title, n);
-  stage.setAttribute('aria-label', `${page.title}: a busy picture with ${page.finds.length} things to find`);
+  rainbow($('playTitle'), titleOf(page), n);
+  stage.setAttribute('aria-label', t('stage_aria', { title: titleOf(page), n: page.finds.length }));
   view.W = page.w; view.H = page.h;
   img.style.width = page.w + 'px'; img.style.height = page.h + 'px';
   marks.setAttribute('width', page.w); marks.setAttribute('height', page.h); marks.setAttribute('viewBox', `0 0 ${page.w} ${page.h}`);
@@ -855,12 +895,12 @@ function openPage(n, after) {
     layer.insertBefore(e, marks);
   }
   img.onload = ready;
-  img.onerror = () => { $('loading').textContent = "This page didn't load. Check the internet and try again."; };
+  img.onerror = () => { $('loading').textContent = t('page_error'); };
   img.src = page.img;
   try { history.replaceState(null, '', '#page' + n); } catch (e) {}
 }
 function finale() {
-  rainbow($('finTitle'), 'You found everyone!', 2);
+  rainbow($('finTitle'), t('finale'), 2);
   const faces = $('finFaces'); faces.textContent = '';
   for (const f of page.finds) { const i = document.createElement('img'); i.alt = ''; i.src = faceOf(page, f.id); faces.append(i); }
   const next = DATA.spreads.find(s => s.n > page.n);
@@ -881,7 +921,7 @@ $('back').addEventListener('click', goHome);
 $('finHome').addEventListener('click', goHome);
 $('finAgain').addEventListener('click', () => {
   const n = page.n; newRound(n);
-  openPage(n, () => say("Everyone's hiding again!"));
+  openPage(n, () => say(t('say_hiding_again')));
 });
 $('finNext').addEventListener('click', () => { const next = DATA.spreads.find(s => s.n > page.n); if (next) openPage(next.n); });
 $('sound').addEventListener('click', () => { store.sound = !store.sound; persist(); drawSound(); if (store.sound) chime(); });
@@ -889,7 +929,11 @@ $('zin').addEventListener('click', () => zoomButton(1.6));
 $('zout').addEventListener('click', () => zoomButton(1 / 1.6));
 $('zfit').addEventListener('click', () => { const { w, h } = stageSize(), s = minS(); animateTo(s, (w - view.W * s) / 2, (h - view.H * s) / 2); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('play').hidden) goHome(); });
-drawSound();
+applyLang();
+$('langBtn').addEventListener('click', () => {
+  store.lang = store.lang === 'ko' ? 'en' : 'ko'; persist(); applyLang();
+  if (DATA) { buildNames(); renderHome(); }
+});
 try {   // the link to the other books carries the name along
   const u = new URL('https://play.mikeohalloran.au/');
   if (ownerName()) u.searchParams.set('for', ownerName());
@@ -898,8 +942,7 @@ try {   // the link to the other books carries the name along
 
 fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
   DATA = d;
-  const own = store.names || {};     // the family's own names, from a private link on this device
-  DATA.byId = Object.fromEntries(d.finds.map(f => [f.id, own[f.id] ? { ...f, label: own[f.id], say: own[f.id] } : { ...f, say: f.say || f.label }]));
+  buildNames();
   const keep = new Set(DATA.spreads.map(s => K(s.n)));      // forget progress on pictures that have changed
   let pruned = false;
   for (const k of Object.keys(store.found)) if (!keep.has(k)) { delete store.found[k]; pruned = true; }
@@ -912,6 +955,14 @@ fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.js
   const m = /^#page(\d+)$/.exec(location.hash);
   if (m && DATA.spreads.some(s => s.n === +m[1])) openPage(+m[1]);
 }).catch(() => {
-  $('pages').innerHTML = '<p class="error">The pages didn\'t load. Check the internet connection and try again.</p>';
+  const p = document.createElement('p'); p.className = 'error'; p.textContent = t('pages_error'); $('pages').replaceChildren(p);
 });
+// what each find is called: the family's own names from a private link on this device, or else the language's
+function buildNames() {
+  const own = store.names || {}, L = LANG().finds || {};
+  DATA.byId = Object.fromEntries(DATA.finds.map(f => {
+    const tr = L[f.id] || {}, label = tr.label || f.label, sayAs = tr.say || (store.lang === 'en' && f.say) || label;
+    return [f.id, own[f.id] ? { ...f, label: own[f.id], say: own[f.id] } : { ...f, label, say: sayAs }];
+  }));
+}
 </script>

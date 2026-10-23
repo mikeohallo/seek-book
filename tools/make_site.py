@@ -23,6 +23,25 @@ head = re.sub(r'<meta name="claude:viewport-fit-sides"[^>]*>\s*', '', head)
 head = re.sub(r'<meta name="description"[^>]*>\s*', '', head)
 assert "const DEFAULT_OWNER = '';" in body, 'the hosted page must not name anyone (DEFAULT_OWNER must be empty)'
 
+# The game's text: one file per language in lang/ (lang/en.json, lang/ko.json), the same keys in each.
+# Built into the page, so it stays one file. The build stops if a language is missing a line.
+import json, urllib.parse
+from check_lang import check_langs
+LANGS = {code: json.load(open(os.path.join('lang', code + '.json'), encoding='utf-8')) for code in ('en', 'ko')}
+problems = check_langs(LANGS, json.load(open(os.path.join(UP, 'data.json'), encoding='utf-8')))
+assert not problems, 'lang files: ' + '; '.join(problems)
+for v in LANGS.values(): v.pop('_about', None)
+# the Korean font, cut down to just the letters the Korean text uses (Google Fonts' text= option)
+def strings(o):
+    if isinstance(o, dict): return ''.join(strings(v) for v in o.values())
+    return o if isinstance(o, str) else ''
+ko_chars = ''.join(sorted({c for c in strings(LANGS['ko']) if ord(c) > 0x7F}))
+ko_font = 'https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap&text=' + urllib.parse.quote(ko_chars)
+for tok, val in (('LANGS', json.dumps(LANGS, ensure_ascii=False, separators=(',', ':'))), ('KO_FONT', json.dumps(ko_font))):
+    pat = re.compile(r'/\*' + tok + r'\*/.*?/\*/' + tok + r'\*/', re.S)
+    assert len(pat.findall(body)) == 1, tok
+    body = pat.sub(lambda m: val, body)
+
 desc = 'Find the family hidden in every busy picture.'
 page = f'''<!doctype html>
 <html lang="en-AU">

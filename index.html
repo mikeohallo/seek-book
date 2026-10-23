@@ -42,6 +42,16 @@
   --shadow: 0 2px 0 rgba(58, 40, 82, .08), 0 10px 24px rgba(58, 40, 82, .10);
   color-scheme: light;
 }
+/* Korean: rounded Hangul fonts, loaded only when Korean is on (the Latin fonts stay for numbers and names) */
+:root:lang(ko) {
+  --font-display: 'Jua', 'Fredoka', 'Arial Rounded MT Bold', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Gowun Dodum', 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+:root:lang(ko) .title .l { -webkit-text-stroke-width: .1em; }
+:root:lang(ko) body { word-break: keep-all; }
+.langbar { display: flex; justify-content: flex-end; margin-bottom: -12px; }
+.lang-btn { border: 0; border-radius: 999px; padding: 8px 16px; background: var(--card); box-shadow: var(--shadow); font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink); }
+.lang-btn:lang(ko) { font-family: 'Jua', 'Fredoka', ui-rounded, system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; background: var(--paper); color: var(--ink); }
@@ -207,21 +217,22 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 </style>
 </head>
 <body>
-<main class="home" id="home" aria-label="Pages">
+<main class="home" id="home" aria-label="Pages" data-ta="aria_home">
+  <div class="langbar"><button class="lang-btn" id="langBtn" lang="ko" aria-label="Show the game in Korean">한국어</button></div>
   <h1 class="title" id="homeTitle"></h1>
-  <p class="lede">Tap everyone you can find. Stuck? Press and hold a face for a clue.</p>
-  <section class="pages" id="pages" aria-label="Pages to play"></section>
+  <p class="lede" data-t="lede">Tap everyone you can find. Stuck? Press and hold a face for a clue.</p>
+  <section class="pages" id="pages" aria-label="Pages to play" data-ta="aria_pages"></section>
   <section aria-labelledby="whoHead" style="display:flex;flex-direction:column;gap:10px">
-    <h2 class="h2" id="whoHead">Who's hiding on every page</h2>
+    <h2 class="h2" id="whoHead" data-t="who_head">Who's hiding on every page</h2>
     <div class="who" id="who"></div>
   </section>
-  <p class="foot">The same pictures as the printed book. Nothing you do here leaves this device.</p>
-  <p class="foot"><a id="morePlay" href="https://play.mikeohalloran.au/" style="display:inline-block;padding:8px 16px;border-radius:999px;background:var(--paper-deep, #F6EBD6);color:var(--ink-soft, #6E5C86);font-family:Fredoka, sans-serif;font-weight:600;font-size:16px;text-decoration:none">More to play &rsaquo;</a></p>
+  <p class="foot" data-t="foot">The same pictures as the printed book. Nothing you do here leaves this device.</p>
+  <p class="foot"><a id="morePlay" href="https://play.mikeohalloran.au/" style="display:inline-block;padding:8px 16px;border-radius:999px;background:var(--paper-deep, #F6EBD6);color:var(--ink-soft, #6E5C86);font-family:var(--font-display);font-weight:600;font-size:16px;text-decoration:none" data-t="more_play">More to play &rsaquo;</a></p>
 </main>
 
-<section class="play" id="play" hidden aria-label="Find everyone">
+<section class="play" id="play" hidden aria-label="Find everyone" data-ta="aria_play">
   <header class="bar">
-    <button class="icon-btn" id="back" aria-label="All pages"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="icon-btn" id="back" aria-label="All pages" data-ta="aria_back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
     <h1 class="title" id="playTitle"></h1>
     <span class="count" id="count" aria-live="polite">0/9</span>
     <button class="icon-btn" id="sound" aria-label="Sound on" aria-pressed="true"></button>
@@ -232,25 +243,25 @@ canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
         <img id="scene" alt="" draggable="false">
         <svg id="marks" aria-hidden="true"><defs id="defs"></defs></svg>
       </div>
-      <p class="loading" id="loading">Opening the page…</p>
+      <p class="loading" id="loading" data-t="loading">Opening the page…</p>
       <div class="say" id="say" role="status" aria-live="polite"></div>
       <div class="zoom">
-        <button class="icon-btn" id="zin" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-        <button class="icon-btn" id="zout" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-        <button class="icon-btn" id="zfit" aria-label="Show the whole page"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button class="icon-btn" id="zin" aria-label="Zoom in" data-ta="aria_zoom_in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="icon-btn" id="zout" aria-label="Zoom out" data-ta="aria_zoom_out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button class="icon-btn" id="zfit" aria-label="Show the whole page" data-ta="aria_zoom_fit"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       </div>
     </div>
   </div>
-  <nav class="strip" id="strip" aria-label="Who to find"></nav>
+  <nav class="strip" id="strip" aria-label="Who to find" data-ta="aria_strip"></nav>
 </section>
 
 <div class="finale" id="finale" hidden role="dialog" aria-modal="true" aria-labelledby="finTitle">
   <div class="box">
     <h2 class="title" id="finTitle"></h2>
     <div class="faces" id="finFaces"></div>
-    <button class="btn primary" id="finNext">Next page <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-    <button class="btn" id="finAgain">Hide everyone again <svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M18 14l3 3-3 3M3 17h4c1.6 0 2.8-1.5 3.8-3.3M13.2 10.3C14.2 8.5 15.4 7 17 7h4M18 4l3 3-3 3"/></svg></button>
-    <button class="btn" id="finHome">All pages</button>
+    <button class="btn primary" id="finNext"><span data-t="next_page">Next page</span> <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button class="btn" id="finAgain"><span data-t="hide_again">Hide everyone again</span> <svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M18 14l3 3-3 3M3 17h4c1.6 0 2.8-1.5 3.8-3.3M13.2 10.3C14.2 8.5 15.4 7 17 7h4M18 4l3 3-3 3"/></svg></button>
+    <button class="btn" id="finHome" data-t="all_pages">All pages</button>
   </div>
 </div>
 
@@ -263,12 +274,17 @@ const COLOURS = ['#EC6AA8', '#F4882C', '#F2C828', '#68B242', '#54A6E2', '#A880D6
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let DATA = null;
+// Every piece of text the game shows lives in lang/en.json and lang/ko.json (one file per language, the same
+// keys in each); make_site.py builds them into the page here. KO_FONT is the Korean font, cut down to the
+// letters the game uses, and only loaded when Korean is on.
+const LANGS = {"en":{"ui":{"book_my":"My Seek and Find","book_owner":"{owner}'s Seek and Find","lede":"Tap everyone you can find. Stuck? Press and hold a face for a clue.","who_head":"Who's hiding on every page","foot":"The same pictures as the printed book. Nothing you do here leaves this device.","more_play":"More to play ›","lang_switch":"한국어","lang_switch_aria":"Show the game in Korean","aria_home":"Pages","aria_pages":"Pages to play","aria_play":"Find everyone","aria_back":"All pages","aria_sound_on":"Sound on","aria_sound_off":"Sound off","aria_zoom_in":"Zoom in","aria_zoom_out":"Zoom out","aria_zoom_fit":"Show the whole page","aria_strip":"Who to find","card_of":"{got} of {total}","card_aria":"{title}: {got} of {total} found","card_aria_star":"{title}: {got} of {total} found, star earned","start_again":"Start this page again","tap_again":"Tap again to clear it","loading":"Opening the page…","page_error":"This page didn't load. Check the internet and try again.","pages_error":"The pages didn't load. Check the internet connection and try again.","stage_aria":"{title}: a busy picture with {n} things to find","say_found":"You found {name}!","say_already":"You already found {name}!","say_found_before":"You found {name} already!","say_nearly":"Nearly! That's not {name}.","say_glow":"Look for {name} in the glow!","say_can_you":"Can you find {name}?","say_hiding_again":"Everyone's hiding again!","face_found":"{label}, found","face_hiding":"{label}, still hiding. Press and hold for a clue","finale":"You found everyone!","next_page":"Next page","hide_again":"Hide everyone again","all_pages":"All pages"},"finds":{"girl":{"label":"Girl","say":"the girl"},"dad":{"label":"Dad","say":"Dad"},"mum":{"label":"Mum","say":"Mum"},"grandma":{"label":"Grandma","say":"Grandma"},"uncle":{"label":"Uncle","say":"Uncle"},"grandparents":{"label":"Grandparents","say":"the grandparents"},"shoes":{"label":"Ballet shoes","say":"the ballet shoes"},"teddy":{"label":"Sleepy doll","say":"the sleepy doll"},"unicorn":{"label":"Unicorn","say":"the unicorn"}},"pages":{"1":"The toy shop","2":"The library","3":"The playground","4":"The supermarket","5":"The swimming pool","6":"The airport","7":"Grandma's garden","8":"Ballet class","9":"The zoo","10":"Party in the park","11":"Trick or treat","12":"Sunrise at Homigot","13":"Jukdo Market","14":"Expo Science Park","15":"Sungsimdang Bakery","16":"Circular Quay","17":"Hyde Park","18":"Town Hall","19":"Bondi Beach","20":"Victoria Harbour","21":"Gardens by the Bay","22":"Lau Pa Sat","23":"KLCC Park","24":"George Town","25":"Seollal at the Palace","26":"The King's Procession","27":"Changing of the Guard","28":"The Lotus Pond Banquet","29":"The Secret Garden","30":"Picnic by the Han River","31":"The Ice-Fishing Festival","32":"School Sports Day"}},"ko":{"ui":{"book_my":"나의 숨은그림찾기","book_owner":"{owner}의 숨은그림찾기","lede":"찾은 사람을 톡 눌러요. 못 찾겠으면 얼굴을 꾹 누르고 있으면 힌트가 나와요.","who_head":"페이지마다 누가 숨어 있을까요?","foot":"인쇄한 책과 같은 그림이에요. 여기서 하는 건 이 기기 밖으로 나가지 않아요.","more_play":"더 놀기 ›","lang_switch":"English","lang_switch_aria":"영어로 보기","aria_home":"페이지","aria_pages":"놀 수 있는 페이지","aria_play":"모두 찾아요","aria_back":"모든 페이지","aria_sound_on":"소리 켜짐","aria_sound_off":"소리 꺼짐","aria_zoom_in":"크게 보기","aria_zoom_out":"작게 보기","aria_zoom_fit":"전체 보기","aria_strip":"찾을 사람","card_of":"{got}/{total}","card_aria":"{title}: {total}개 중 {got}개 찾았어요","card_aria_star":"{title}: {total}개 중 {got}개 찾았어요, 별을 받았어요","start_again":"처음부터 다시 하기","tap_again":"한 번 더 누르면 지워져요","loading":"페이지를 여는 중…","page_error":"페이지를 열지 못했어요. 인터넷을 확인하고 다시 해 봐요.","pages_error":"페이지를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 해 봐요.","stage_aria":"{title}: 찾을 게 {n}개 숨어 있는 복잡한 그림","say_found":"{name|을/를} 찾았어요!","say_already":"{name|은/는} 벌써 찾았어요!","say_found_before":"{name|은/는} 이미 찾았어요!","say_nearly":"아까워요! 그건 {name|이/가} 아니에요.","say_glow":"반짝이는 곳에서 {name|을/를} 찾아봐요!","say_can_you":"{name|을/를} 찾을 수 있을까요?","say_hiding_again":"모두 다시 숨었어요!","face_found":"{label}, 찾았어요","face_hiding":"{label}, 아직 숨어 있어요. 꾹 누르면 힌트가 나와요","finale":"모두 찾았어요!","next_page":"다음 페이지","hide_again":"다시 숨기","all_pages":"모든 페이지"},"finds":{"girl":{"label":"여자아이","say":"여자아이"},"dad":{"label":"아빠","say":"아빠"},"mum":{"label":"엄마","say":"엄마"},"grandma":{"label":"할머니","say":"할머니"},"uncle":{"label":"삼촌","say":"삼촌"},"grandparents":{"label":"할머니 할아버지","say":"할머니 할아버지"},"shoes":{"label":"발레 신발","say":"발레 신발"},"teddy":{"label":"졸린 인형","say":"졸린 인형"},"unicorn":{"label":"유니콘","say":"유니콘"}},"pages":{"1":"장난감 가게","2":"도서관","3":"놀이터","4":"마트","5":"수영장","6":"공항","7":"할머니의 정원","8":"발레 수업","9":"동물원","10":"공원 파티","11":"할로윈 사탕 받기","12":"호미곶 해돋이","13":"죽도시장","14":"엑스포 과학공원","15":"성심당 빵집","16":"서큘러 키","17":"하이드 파크","18":"시드니 타운홀","19":"본다이 비치","20":"빅토리아 하버","21":"가든스 바이 더 베이","22":"라우파삿","23":"KLCC 공원","24":"조지타운","25":"궁궐의 설날","26":"임금님의 행차","27":"수문장 교대식","28":"연꽃 연못 잔치","29":"비밀의 정원","30":"한강 소풍","31":"화천 산천어축제","32":"학교 운동회"}}};
+const KO_FONT = "https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap&text=%E2%80%A6%E2%80%BA%EA%B0%80%EA%B0%90%EA%B0%95%EA%B0%99%EA%B0%9C%EA%B1%B4%EA%B2%8C%EA%B2%A0%EA%B2%B0%EA%B3%A0%EA%B3%B3%EA%B3%B5%EA%B3%B6%EA%B3%BC%EA%B4%80%EA%B5%90%EA%B5%B4%EA%B6%81%EA%B6%90%EA%B7%B8%EA%B8%88%EA%B8%B0%EA%B9%8C%EA%BA%BC%EA%BD%83%EA%BE%B9%EB%82%98%EB%82%9C%EB%82%A0%EB%84%B7%EB%86%80%EB%88%84%EB%88%8C%EB%8A%94%EB%8B%88%EB%8B%98%EB%8B%A4%EB%8B%B9%EB%8C%80%EB%8D%94%EB%8F%84%EB%8F%8B%EB%8F%99%EB%91%90%EB%93%9C%EB%93%A0%EB%9D%BC%EB%9E%8C%EB%9F%AC%EB%A0%88%EB%A1%9C%EB%A5%B4%EB%A5%BC%EB%A6%AC%EB%A6%B0%EB%A6%BC%EB%A7%88%EB%A8%B8%EB%A9%B4%EB%AA%A8%EB%AA%BB%EB%AC%B8%EB%AC%BC%EB%AF%B8%EB%B0%80%EB%B0%94%EB%B0%96%EB%B0%98%EB%B0%9B%EB%B0%9C%EB%B2%84%EB%B2%88%EB%B2%8C%EB%B2%A0%EB%B3%84%EB%B3%B4%EB%B3%B5%EB%B3%B8%EB%B4%90%EB%B6%80%EB%B6%88%EB%B9%84%EB%B9%85%EB%B9%A0%EB%B9%B5%EC%82%AC%EC%82%B0%EC%82%BC%EC%82%BF%EC%84%9C%EC%84%A4%EC%84%B1%EC%86%8C%EC%87%84%EC%88%98%EC%88%A8%EC%8A%A4%EC%8B%9C%EC%8B%9D%EC%8B%A0%EC%8B%AC%EC%8D%A8%EC%95%84%EC%95%8A%EC%95%98%EC%96%B4%EC%96%BC%EC%97%84%EC%97%85%EC%97%88%EC%97%90%EC%97%91%EC%97%AC%EC%97%B0%EC%97%B4%EC%98%81%EC%98%A4%EC%99%80%EC%9A%94%EC%9A%B0%EC%9A%B4%EC%9B%8C%EC%9B%90%EC%9C%88%EC%9C%A0%EC%9C%BC%EC%9D%80%EC%9D%84%EC%9D%8C%EC%9D%98%EC%9D%B4%EC%9D%B8%EC%9E%84%EC%9E%88%EC%9E%90%EC%9E%91%EC%9E%94%EC%9E%A1%EC%9E%A5%EC%A0%84%EC%A0%95%EC%A0%9C%EC%A0%B8%EC%A1%B0%EC%A1%B8%EC%A3%BD%EC%A4%91%EC%A7%80%EC%A7%81%EC%A7%90%EC%A7%91%EC%A7%9D%EC%B0%A8%EC%B0%BE%EC%B1%85%EC%B2%98%EC%B2%9C%EC%B2%B4%EC%B4%8C%EC%B6%95%EC%B9%98%EC%BC%9C%EC%BD%98%ED%81%98%ED%81%AC%ED%82%A4%ED%83%80%ED%83%95%ED%84%B0%ED%86%A0%ED%86%A1%ED%8A%B8%ED%8B%B0%ED%8C%8C%ED%8E%98%ED%8F%AC%ED%92%8D%ED%95%98%ED%95%99%ED%95%9C%ED%95%A0%ED%95%AD%ED%95%B4%ED%96%88%ED%96%89%ED%98%95%ED%98%B8%ED%99%80%ED%99%94%ED%99%95%ED%9A%8C%ED%9E%8C";
 
 // ------------------------------------------------------------- storage ----
 const KEY = 'seek-book.v1';
 function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null, names: d.names || {} }; }
-  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null, names: {} }; }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); return { found: d.found || {}, rounds: d.rounds || {}, done: d.done || {}, plays: d.plays || {}, lv: d.lv || {}, sound: d.sound !== false, owner: d.owner || null, names: d.names || {}, lang: d.lang === 'ko' ? 'ko' : 'en' }; }
+  catch (e) { return { found: {}, rounds: {}, done: {}, plays: {}, lv: {}, sound: true, owner: null, names: {}, lang: 'en' }; }
 }
 const store = load();
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
@@ -300,6 +316,29 @@ addEventListener('hashchange', () => { if (/^#me=/.test(location.hash)) location
 function ownerName() {
   let f = null; try { f = new URLSearchParams(location.search).get('for'); } catch (e) {}
   return (f || store.owner || DEFAULT_OWNER || '').trim().slice(0, 20);
+}
+// ---------------------------------------------------------------- text ----
+const LANG = () => (LANGS && LANGS[store.lang]) || (LANGS && LANGS.en) || { ui: {}, finds: {}, pages: {} };
+// Korean adds a small word after a name that depends on its last sound: {name|을/를} gives 을 after a final
+// consonant and 를 after a vowel (으로/로: ㄹ counts as a vowel). Names in Latin letters go by their last letter.
+function josa(word, a, b) {
+  const w = String(word).trim(), c = w.charCodeAt(w.length - 1);
+  if (c >= 0xAC00 && c <= 0xD7A3) { const j = (c - 0xAC00) % 28; return j === 0 || (j === 8 && a === '으로') ? b : a; }
+  return /[aeiouy]$/i.test(w) ? b : a;
+}
+function t(key, v = {}) {
+  const s = LANG().ui[key] ?? (LANGS && LANGS.en.ui[key]) ?? key;
+  return s.replace(/\{(\w+)(?:\|([^/}]+)\/([^}]+))?\}/g, (m, k, a, b) => { const x = String(v[k] ?? ''); return a ? x + josa(x, a, b) : x; });
+}
+const titleOf = sp => LANG().pages[String(sp.n)] || sp.title;
+function applyLang() {
+  const ko = store.lang === 'ko';
+  document.documentElement.lang = ko ? 'ko' : 'en-AU';
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
+  document.querySelectorAll('[data-ta]').forEach(e => e.setAttribute('aria-label', t(e.dataset.ta)));
+  const b = $('langBtn'); b.textContent = t('lang_switch'); b.setAttribute('aria-label', t('lang_switch_aria')); b.lang = ko ? 'en' : 'ko';
+  if (ko && KO_FONT && !$('koFont')) { const l = document.createElement('link'); l.id = 'koFont'; l.rel = 'stylesheet'; l.href = KO_FONT; document.head.append(l); }
+  drawSound();
 }
 // progress is kept per picture: each spread's key changes whenever its picture or hiding places change,
 // so ticks from an old version of a page never show up on a new one
@@ -490,7 +529,7 @@ function rainbow(el, text, start = 0) {
     el.append(w);
   });
 }
-const bookName = () => `${ownerName() ? ownerName() + "'s" : 'My'} Seek and Find`;
+const bookName = () => ownerName() ? t('book_owner', { owner: ownerName() }) : t('book_my');
 
 // --------------------------------------------------------------- sound ----
 let actx = null;
@@ -517,7 +556,7 @@ const chime = () => notes([659.25, 830.61, 987.77, 1318.5]);
 const fanfare = () => notes([523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5], .11, .5, .14);
 function drawSound() {
   const b = $('sound');
-  b.setAttribute('aria-pressed', String(store.sound)); b.setAttribute('aria-label', store.sound ? 'Sound on' : 'Sound off');
+  b.setAttribute('aria-pressed', String(store.sound)); b.setAttribute('aria-label', t(store.sound ? 'aria_sound_on' : 'aria_sound_off'));
   b.innerHTML = store.sound
     ? '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>'
     : '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4zM17 9l5 6M22 9l-5 6"/></svg>';
@@ -564,20 +603,21 @@ function renderHome() {
     const got = foundIn(sp.n), total = sp.finds.length, done = starred(sp.n);
     const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '4px';
     const b = document.createElement('button'); b.className = 'page-card';
-    b.setAttribute('aria-label', `${sp.title}: ${got.size} of ${total} found${done ? ', star earned' : ''}`);
+    b.setAttribute('aria-label', t(done ? 'card_aria_star' : 'card_aria', { title: titleOf(sp), got: got.size, total }));
     const dots = sp.finds.map(f => {
       const fd = DATA.byId[f.id];
       return `<i class="${got.has(f.id) ? 'on' : ''}" style="${got.has(f.id) ? 'background:' + fd.colour : ''}"></i>`;
     }).join('');
     b.innerHTML = `<div class="pic"><img alt="" src="${sp.thumb}" loading="lazy">${done ? `<span class="star">${STAR}</span>` : ''}</div>
-      <div class="meta"><span class="name"></span><span class="dots">${dots}<b>${got.size} of ${total}</b></span></div>`;
-    b.querySelector('.name').textContent = sp.title;
+      <div class="meta"><span class="name"></span><span class="dots">${dots}<b></b></span></div>`;
+    b.querySelector('.name').textContent = titleOf(sp);
+    b.querySelector('.dots b').textContent = t('card_of', { got: got.size, total });
     b.addEventListener('click', () => openPage(sp.n));
     wrap.append(b);
     if (got.size || roundOf(sp.n)) {
-      const a = document.createElement('button'); a.className = 'again'; a.textContent = 'Start this page again';
+      const a = document.createElement('button'); a.className = 'again'; a.textContent = t('start_again');
       a.addEventListener('click', () => {
-        if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = 'Tap again to clear it'; setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
+        if (againArmed !== sp.n) { againArmed = sp.n; a.textContent = t('tap_again'); setTimeout(() => { if (againArmed === sp.n) { againArmed = null; renderHome(); } }, 3500); return; }
         againArmed = null; for (const k of ['found', 'rounds', 'plays', 'lv']) delete store[k][K(sp.n)]; persist(); renderHome();
       });
       wrap.append(a);
@@ -721,10 +761,10 @@ function tap(px, py) {
   if (!best) {
     // a lookalike: close, but not who it looks like
     const d = (page.decoys || []).find(q => { const b = padded(q); return Math.abs(ix - b.cx) <= b.hw * .8 && Math.abs(iy - b.cy) <= b.hh * .8; });
-    if (d) { say(`Nearly! That's not ${DATA.byId[d.like].say}.`); bumpFace(d.like); return; }
+    if (d) { say(t('say_nearly', { name: DATA.byId[d.like].say })); bumpFace(d.like); return; }
     miss(px, py); return;
   }
-  if (got.has(best.id)) { say(`You already found ${DATA.byId[best.id].say}!`); bumpFace(best.id); return; }
+  if (got.has(best.id)) { say(t('say_already', { name: DATA.byId[best.id].say })); bumpFace(best.id); return; }
   found(best, px, py);
 }
 function miss(px, py) {
@@ -742,7 +782,7 @@ function found(f, px, py) {
   const r = stage.getBoundingClientRect();
   burst(r.left + px, r.top + py);
   chime();
-  say(`You found ${DATA.byId[f.id].say}!`);
+  say(t('say_found', { name: DATA.byId[f.id].say }));
   updateStrip(f.id);
   if (list.length >= page.finds.length) setTimeout(finale, 1100);
 }
@@ -773,7 +813,7 @@ function updateStrip(justFound) {
   $('strip').querySelectorAll('.face').forEach(b => {
     const done = got.has(b.dataset.id);
     b.classList.toggle('done', done);
-    b.setAttribute('aria-label', `${DATA.byId[b.dataset.id].label}${done ? ', found' : ', still hiding. Press and hold for a clue'}`);
+    b.setAttribute('aria-label', t(done ? 'face_found' : 'face_hiding', { label: DATA.byId[b.dataset.id].label }));
   });
   $('count').textContent = `${got.size}/${page.finds.length}`;
   if (justFound) bumpFace(justFound);
@@ -782,7 +822,7 @@ function updateStrip(justFound) {
 // clues: press and hold a face, and a soft glow shows roughly where they are
 function hint(id) {
   const f = page.finds.find(q => q.id === id); if (!f) return;
-  if (foundIn(page.n).has(id)) { say(`You found ${DATA.byId[id].say} already!`); return; }
+  if (foundIn(page.n).has(id)) { say(t('say_found_before', { name: DATA.byId[id].say })); return; }
   const fd = DATA.byId[id];
   const [x0, y0, x1, y1] = f.box;
   const R = view.W * .11;
@@ -804,7 +844,7 @@ function hint(id) {
     const s2 = Math.min(view.s, Math.max(minS(), Math.min(w, h) / (R * 3)));
     animateTo(s2, w / 2 - gx * s2, h / 2 - gy * s2, 450);
   }
-  say(`Look for ${DATA.byId[id].say} in the glow!`);
+  say(t('say_glow', { name: DATA.byId[id].say }));
 }
 function buildStrip() {
   const strip = $('strip'); strip.textContent = '';
@@ -825,7 +865,7 @@ function buildStrip() {
     b.addEventListener('click', () => {
       if (held) { held = false; return; }
       bumpFace(f.id);
-      say(foundIn(page.n).has(f.id) ? `You found ${fd.say}!` : `Can you find ${fd.say}?`);
+      say(t(foundIn(page.n).has(f.id) ? 'say_found' : 'say_can_you', { name: fd.say }));
     });
     b.addEventListener('keydown', e => { if (e.key === 'h' || e.key === 'H') hint(f.id); });
     strip.append(b);
@@ -835,12 +875,12 @@ let openToken = 0;
 function openPage(n, after) {
   const sp = DATA.spreads.find(s => s.n === n); if (!sp) return;
   // a page she has already finished opens straight into a new round: same picture, everyone somewhere new
-  if (finished(n)) { newRound(n); after = after || (() => say("Everyone's hiding again!")); }
+  if (finished(n)) { newRound(n); after = after || (() => say(t('say_hiding_again'))); }
   const finds = layout(sp, roundOf(n), levelOf(n));
   page = { ...sp, finds, decoys: finds.decoys };
   $('home').hidden = true; $('play').hidden = false; $('finale').hidden = true;
-  rainbow($('playTitle'), page.title, n);
-  stage.setAttribute('aria-label', `${page.title}: a busy picture with ${page.finds.length} things to find`);
+  rainbow($('playTitle'), titleOf(page), n);
+  stage.setAttribute('aria-label', t('stage_aria', { title: titleOf(page), n: page.finds.length }));
   view.W = page.w; view.H = page.h;
   img.style.width = page.w + 'px'; img.style.height = page.h + 'px';
   marks.setAttribute('width', page.w); marks.setAttribute('height', page.h); marks.setAttribute('viewBox', `0 0 ${page.w} ${page.h}`);
@@ -871,12 +911,12 @@ function openPage(n, after) {
     layer.insertBefore(e, marks);
   }
   img.onload = ready;
-  img.onerror = () => { $('loading').textContent = "This page didn't load. Check the internet and try again."; };
+  img.onerror = () => { $('loading').textContent = t('page_error'); };
   img.src = page.img;
   try { history.replaceState(null, '', '#page' + n); } catch (e) {}
 }
 function finale() {
-  rainbow($('finTitle'), 'You found everyone!', 2);
+  rainbow($('finTitle'), t('finale'), 2);
   const faces = $('finFaces'); faces.textContent = '';
   for (const f of page.finds) { const i = document.createElement('img'); i.alt = ''; i.src = faceOf(page, f.id); faces.append(i); }
   const next = DATA.spreads.find(s => s.n > page.n);
@@ -897,7 +937,7 @@ $('back').addEventListener('click', goHome);
 $('finHome').addEventListener('click', goHome);
 $('finAgain').addEventListener('click', () => {
   const n = page.n; newRound(n);
-  openPage(n, () => say("Everyone's hiding again!"));
+  openPage(n, () => say(t('say_hiding_again')));
 });
 $('finNext').addEventListener('click', () => { const next = DATA.spreads.find(s => s.n > page.n); if (next) openPage(next.n); });
 $('sound').addEventListener('click', () => { store.sound = !store.sound; persist(); drawSound(); if (store.sound) chime(); });
@@ -905,7 +945,11 @@ $('zin').addEventListener('click', () => zoomButton(1.6));
 $('zout').addEventListener('click', () => zoomButton(1 / 1.6));
 $('zfit').addEventListener('click', () => { const { w, h } = stageSize(), s = minS(); animateTo(s, (w - view.W * s) / 2, (h - view.H * s) / 2); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('play').hidden) goHome(); });
-drawSound();
+applyLang();
+$('langBtn').addEventListener('click', () => {
+  store.lang = store.lang === 'ko' ? 'en' : 'ko'; persist(); applyLang();
+  if (DATA) { buildNames(); renderHome(); }
+});
 try {   // the link to the other books carries the name along
   const u = new URL('https://play.mikeohalloran.au/');
   if (ownerName()) u.searchParams.set('for', ownerName());
@@ -914,8 +958,7 @@ try {   // the link to the other books carries the name along
 
 fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
   DATA = d;
-  const own = store.names || {};     // the family's own names, from a private link on this device
-  DATA.byId = Object.fromEntries(d.finds.map(f => [f.id, own[f.id] ? { ...f, label: own[f.id], say: own[f.id] } : { ...f, say: f.say || f.label }]));
+  buildNames();
   const keep = new Set(DATA.spreads.map(s => K(s.n)));      // forget progress on pictures that have changed
   let pruned = false;
   for (const k of Object.keys(store.found)) if (!keep.has(k)) { delete store.found[k]; pruned = true; }
@@ -928,8 +971,16 @@ fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.js
   const m = /^#page(\d+)$/.exec(location.hash);
   if (m && DATA.spreads.some(s => s.n === +m[1])) openPage(+m[1]);
 }).catch(() => {
-  $('pages').innerHTML = '<p class="error">The pages didn\'t load. Check the internet connection and try again.</p>';
+  const p = document.createElement('p'); p.className = 'error'; p.textContent = t('pages_error'); $('pages').replaceChildren(p);
 });
+// what each find is called: the family's own names from a private link on this device, or else the language's
+function buildNames() {
+  const own = store.names || {}, L = LANG().finds || {};
+  DATA.byId = Object.fromEntries(DATA.finds.map(f => {
+    const tr = L[f.id] || {}, label = tr.label || f.label, sayAs = tr.say || (store.lang === 'en' && f.say) || label;
+    return [f.id, own[f.id] ? { ...f, label: own[f.id], say: own[f.id] } : { ...f, label, say: sayAs }];
+  }));
+}
 </script>
 </body>
 </html>

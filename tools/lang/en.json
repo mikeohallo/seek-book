@@ -1,0 +1,117 @@
+{
+ "_about": "Every piece of text the game shows, in English. Each language has one file with the same keys; a new page adds one line under pages. {name} and the like are filled in by the game.",
+ "ui": {
+  "book_my": "My Seek and Find",
+  "book_owner": "{owner}'s Seek and Find",
+  "lede": "Tap everyone you can find. Stuck? Press and hold a face for a clue.",
+  "who_head": "Who's hiding on every page",
+  "foot": "The same pictures as the printed book. Nothing you do here leaves this device.",
+  "more_play": "More to play ›",
+  "lang_switch": "한국어",
+  "lang_switch_aria": "Show the game in Korean",
+  "aria_home": "Pages",
+  "aria_pages": "Pages to play",
+  "aria_play": "Find everyone",
+  "aria_back": "All pages",
+  "aria_sound_on": "Sound on",
+  "aria_sound_off": "Sound off",
+  "aria_zoom_in": "Zoom in",
+  "aria_zoom_out": "Zoom out",
+  "aria_zoom_fit": "Show the whole page",
+  "aria_strip": "Who to find",
+  "card_of": "{got} of {total}",
+  "card_aria": "{title}: {got} of {total} found",
+  "card_aria_star": "{title}: {got} of {total} found, star earned",
+  "start_again": "Start this page again",
+  "tap_again": "Tap again to clear it",
+  "loading": "Opening the page…",
+  "page_error": "This page didn't load. Check the internet and try again.",
+  "pages_error": "The pages didn't load. Check the internet connection and try again.",
+  "stage_aria": "{title}: a busy picture with {n} things to find",
+  "say_found": "You found {name}!",
+  "say_already": "You already found {name}!",
+  "say_found_before": "You found {name} already!",
+  "say_nearly": "Nearly! That's not {name}.",
+  "say_glow": "Look for {name} in the glow!",
+  "say_can_you": "Can you find {name}?",
+  "say_hiding_again": "Everyone's hiding again!",
+  "face_found": "{label}, found",
+  "face_hiding": "{label}, still hiding. Press and hold for a clue",
+  "finale": "You found everyone!",
+  "next_page": "Next page",
+  "hide_again": "Hide everyone again",
+  "all_pages": "All pages"
+ },
+ "finds": {
+  "girl": {
+   "label": "Girl",
+   "say": "the girl"
+  },
+  "dad": {
+   "label": "Dad",
+   "say": "Dad"
+  },
+  "mum": {
+   "label": "Mum",
+   "say": "Mum"
+  },
+  "grandma": {
+   "label": "Grandma",
+   "say": "Grandma"
+  },
+  "uncle": {
+   "label": "Uncle",
+   "say": "Uncle"
+  },
+  "grandparents": {
+   "label": "Grandparents",
+   "say": "the grandparents"
+  },
+  "shoes": {
+   "label": "Ballet shoes",
+   "say": "the ballet shoes"
+  },
+  "teddy": {
+   "label": "Sleepy doll",
+   "say": "the sleepy doll"
+  },
+  "unicorn": {
+   "label": "Unicorn",
+   "say": "the unicorn"
+  }
+ },
+ "pages": {
+  "1": "The toy shop",
+  "2": "The library",
+  "3": "The playground",
+  "4": "The supermarket",
+  "5": "The swimming pool",
+  "6": "The airport",
+  "7": "Grandma's garden",
+  "8": "Ballet class",
+  "9": "The zoo",
+  "10": "Party in the park",
+  "11": "Trick or treat",
+  "12": "Sunrise at Homigot",
+  "13": "Jukdo Market",
+  "14": "Expo Science Park",
+  "15": "Sungsimdang Bakery",
+  "16": "Circular Quay",
+  "17": "Hyde Park",
+  "18": "Town Hall",
+  "19": "Bondi Beach",
+  "20": "Victoria Harbour",
+  "21": "Gardens by the Bay",
+  "22": "Lau Pa Sat",
+  "23": "KLCC Park",
+  "24": "George Town",
+  "25": "Seollal at the Palace",
+  "26": "The King's Procession",
+  "27": "Changing of the Guard",
+  "28": "The Lotus Pond Banquet",
+  "29": "The Secret Garden",
+  "30": "Picnic by the Han River",
+  "31": "The Ice-Fishing Festival",
+  "32": "School Sports Day"
+ }
+}

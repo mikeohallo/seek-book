@@ -1,0 +1,117 @@
+{
+ "_about": "The same text in Korean (warm, polite 해요체). {name|을/를} means: the name, then 을 after a name ending in a consonant or 를 after a vowel; the game picks.",
+ "ui": {
+  "book_my": "나의 숨은그림찾기",
+  "book_owner": "{owner}의 숨은그림찾기",
+  "lede": "찾은 사람을 톡 눌러요. 못 찾겠으면 얼굴을 꾹 누르고 있으면 힌트가 나와요.",
+  "who_head": "페이지마다 누가 숨어 있을까요?",
+  "foot": "인쇄한 책과 같은 그림이에요. 여기서 하는 건 이 기기 밖으로 나가지 않아요.",
+  "more_play": "더 놀기 ›",
+  "lang_switch": "English",
+  "lang_switch_aria": "영어로 보기",
+  "aria_home": "페이지",
+  "aria_pages": "놀 수 있는 페이지",
+  "aria_play": "모두 찾아요",
+  "aria_back": "모든 페이지",
+  "aria_sound_on": "소리 켜짐",
+  "aria_sound_off": "소리 꺼짐",
+  "aria_zoom_in": "크게 보기",
+  "aria_zoom_out": "작게 보기",
+  "aria_zoom_fit": "전체 보기",
+  "aria_strip": "찾을 사람",
+  "card_of": "{got}/{total}",
+  "card_aria": "{title}: {total}개 중 {got}개 찾았어요",
+  "card_aria_star": "{title}: {total}개 중 {got}개 찾았어요, 별을 받았어요",
+  "start_again": "처음부터 다시 하기",
+  "tap_again": "한 번 더 누르면 지워져요",
+  "loading": "페이지를 여는 중…",
+  "page_error": "페이지를 열지 못했어요. 인터넷을 확인하고 다시 해 봐요.",
+  "pages_error": "페이지를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 해 봐요.",
+  "stage_aria": "{title}: 찾을 게 {n}개 숨어 있는 복잡한 그림",
+  "say_found": "{name|을/를} 찾았어요!",
+  "say_already": "{name|은/는} 벌써 찾았어요!",
+  "say_found_before": "{name|은/는} 이미 찾았어요!",
+  "say_nearly": "아까워요! 그건 {name|이/가} 아니에요.",
+  "say_glow": "반짝이는 곳에서 {name|을/를} 찾아봐요!",
+  "say_can_you": "{name|을/를} 찾을 수 있을까요?",
+  "say_hiding_again": "모두 다시 숨었어요!",
+  "face_found": "{label}, 찾았어요",
+  "face_hiding": "{label}, 아직 숨어 있어요. 꾹 누르면 힌트가 나와요",
+  "finale": "모두 찾았어요!",
+  "next_page": "다음 페이지",
+  "hide_again": "다시 숨기",
+  "all_pages": "모든 페이지"
+ },
+ "finds": {
+  "girl": {
+   "label": "여자아이",
+   "say": "여자아이"
+  },
+  "dad": {
+   "label": "아빠",
+   "say": "아빠"
+  },
+  "mum": {
+   "label": "엄마",
+   "say": "엄마"
+  },
+  "grandma": {
+   "label": "할머니",
+   "say": "할머니"
+  },
+  "uncle": {
+   "label": "삼촌",
+   "say": "삼촌"
+  },
+  "grandparents": {
+   "label": "할머니 할아버지",
+   "say": "할머니 할아버지"
+  },
+  "shoes": {
+   "label": "발레 신발",
+   "say": "발레 신발"
+  },
+  "teddy": {
+   "label": "졸린 인형",
+   "say": "졸린 인형"
+  },
+  "unicorn": {
+   "label": "유니콘",
+   "say": "유니콘"
+  }
+ },
+ "pages": {
+  "1": "장난감 가게",
+  "2": "도서관",
+  "3": "놀이터",
+  "4": "마트",
+  "5": "수영장",
+  "6": "공항",
+  "7": "할머니의 정원",
+  "8": "발레 수업",
+  "9": "동물원",
+  "10": "공원 파티",
+  "11": "할로윈 사탕 받기",
+  "12": "호미곶 해돋이",
+  "13": "죽도시장",
+  "14": "엑스포 과학공원",
+  "15": "성심당 빵집",
+  "16": "서큘러 키",
+  "17": "하이드 파크",
+  "18": "시드니 타운홀",
+  "19": "본다이 비치",
+  "20": "빅토리아 하버",
+  "21": "가든스 바이 더 베이",
+  "22": "라우파삿",
+  "23": "KLCC 공원",
+  "24": "조지타운",
+  "25": "궁궐의 설날",
+  "26": "임금님의 행차",
+  "27": "수문장 교대식",
+  "28": "연꽃 연못 잔치",
+  "29": "비밀의 정원",
+  "30": "한강 소풍",
+  "31": "화천 산천어축제",
+  "32": "학교 운동회"
+ }
+}
