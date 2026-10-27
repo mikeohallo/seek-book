@@ -609,9 +609,31 @@ COSTUMES = {'hanbok': [   # people lookalikes in hanbok (sheets decoys_hanbok_a 
     ('dechb_uncle_red', 'uncle', 1.06, 'p'),        # the uncle's glasses, red jacket, no coat
     ('dechb_pair_glasses', 'grandparents', 1.0, 'w'),   # a black bob and glasses, red and green
     ('dechb_pair_walk', 'grandparents', .98, 'w'),      # grey hair, plum and brown
+], 'halloween': [   # people lookalikes in Halloween costume (sheets decoys_halloween_a and decoys_halloween_b v1)
+    ('dechw_girl_orange', 'girl', .80, 'p'),        # the girl's hair, an orange witch with a black hat
+    ('dechw_girl_plait', 'girl', .79, 'p'),         # the girl's lavender and navy witch, one long black plait
+    ('dechw_dad_red', 'dad', 1.0, 'p'),             # Dad's hair and beard (no grey patch), a dark red pirate coat
+    ('dechw_dad_shaven', 'dad', 1.04, 'p'),         # Dad's hair and navy pirate coat, no beard
+    ('dechw_mum_bun', 'mum', .97, 'p'),             # Mum's bun and black cat, no glasses
+    ('dechw_mum_loose', 'mum', .95, 'p'),           # Mum's glasses and black cat, long loose hair
+    ('dechw_grandma_curly', 'grandma', .97, 'p'),   # grey curls, a pink fairy
+    ('dechw_grandma_dark', 'grandma', 1.0, 'p'),    # Grandma's flowery green fairy dress, dark hair
+    ('dechw_uncle_nospecs', 'uncle', 1.04, 'p'),    # the uncle's hair and grey vampire cape, no glasses
+    ('dechw_uncle_red', 'uncle', 1.04, 'p'),        # the uncle's glasses, a red cape and white shirt
+    ('dechw_pair_glasses', 'grandparents', .99, 'w'),   # a black bob and glasses, a red scarecrow and a green skeleton
+    ('dechw_pair_walk', 'grandparents', .98, 'w'),      # grey hair, a tan scarecrow and a black skeleton
+    # dechw_uncle_white (an extra the sheet drew: the uncle's costume with a white shirt) is cut but not used:
+    # too close to the real one to be fair
 ]}
+# Costume cut-outs taller than their everyday twin (a witch's hat, cat ears and a tail): the same body is
+# drawn at the same scale on the sheet (face widths match), so the height share grows by the cut-out's
+# height ratio and she stays her usual size under the hat. Every other costume is within 0.5% of its twin.
+COSTUME_TALL = {'girl_halloween_stand': 1.072, 'girl_halloween_sit': 1.127, 'girl_halloween_walk': 1.084,
+                'girl_halloween_peek': 1.275, 'mum_halloween_stand': 1.023, 'mum_halloween_sit': 1.068,
+                'mum_halloween_walk': 1.068, 'mum_halloween_peek': 1.034}
 for _co in COSTUMES:
-    WEB_SIZE.update({costume_cut(c, _co): v for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
+    WEB_SIZE.update({costume_cut(c, _co): round(v * COSTUME_TALL.get(costume_cut(c, _co), 1), 3)
+                     for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
 # palace props (sheet props_palace): onggi jars, wrapped New Year gifts, a low stone wall, rice sacks, and
 # the pine shrub for the garden page (on a stone courtyard it looks wrong; the drum's stand has gaps you'd
 # see through, so it isn't used)
@@ -864,12 +886,13 @@ def cmd_web(args):
             path = os.path.join(out, 'portraits', f"{fd['id']}_{co}.webp")
             pt.save(path, quality=90, method=6)
             faces[fd['id']] = f"portraits/{fd['id']}_{co}.webp?v={file_ver(path)}"
-        entry = {'poses': {fid: [dict(p, cut=costume_cut(p['cut'], co)) for p in poses] for fid, poses in data['poses'].items()},
+        tall = lambda v, cut: dict(v, cut=cut, f=round(v['f'] * COSTUME_TALL.get(cut, 1), 3)) if 'f' in v else dict(v, cut=cut)
+        entry = {'poses': {fid: [tall(p, costume_cut(p['cut'], co)) for p in poses] for fid, poses in data['poses'].items()},
                  'portraits': faces}
         if have_hard:
             entry['hard'] = {
-                'sit': {fid: dict(v, cut=costume_cut(v['cut'], co)) for fid, v in data['hard']['sit'].items()},
-                'peek': {fid: dict(v, cut=costume_cut(v['cut'], co)) for fid, v in data['hard']['peek'].items()},
+                'sit': {fid: tall(v, costume_cut(v['cut'], co)) for fid, v in data['hard']['sit'].items()},
+                'peek': {fid: tall(v, costume_cut(v['cut'], co)) for fid, v in data['hard']['peek'].items()},
                 'decoys': [{'cut': c, 'like': like, 'f': f, 'k': k, 'flip': True} for c, like, f, k in COSTUMES[co]] +
                           [d for d in data['hard']['decoys'] if d['like'] not in PEOPLE_IDS]}
         data['costumes'][co] = entry
@@ -886,14 +909,15 @@ def cmd_web(args):
         for p in sd.get('places', []):
             if not p.get('find'):
                 continue
-            cut = load_cut(p['cut'])
-            h = round(max(WEB_SIZE[p['cut']] * crowd_h(sd, p['y']), p['h'] * OBJ_GROW.get(p['find'], 0)), 1)
+            pcut = costume_cut(p['cut'], sd.get('co'))      # a page put in costume later keeps its places' everyday names
+            cut = load_cut(pcut)
+            h = round(max(WEB_SIZE[pcut] * crowd_h(sd, p['y']), p['h'] * OBJ_GROW.get(p['find'], 0)), 1)
             y = round(p['y'] - p['h'] + h, 1) if p['cut'] in HANGING else p['y']    # feet stay put; hanging keeps its top
             w = h * cut.width / cut.height
             boxes.append({'id': p['find'],
                           'box': [round((p['x'] - w / 2) / SPREAD_W_MM, 5), round((y - h) / SCENE_H_MM, 5),
                                   round((p['x'] + w / 2) / SPREAD_W_MM, 5), round(y / SCENE_H_MM, 5)]})
-            book_places.append({'id': p['find'], 'cut': p['cut'], 'x': p['x'], 'y': y, 'h': h,
+            book_places.append({'id': p['find'], 'cut': pcut, 'x': p['x'], 'y': y, 'h': h,
                                 'flip': bool(p.get('flip'))})
         slots = sd.get('slots', [])
         web_slots = [[x, y, k, round(crowd_h(sd, y), 1), on_grass(sp, x, y, crowd_h(sd, y), sd.get('olive_grass', False))] for x, y, k in slots]
