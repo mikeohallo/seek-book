@@ -913,7 +913,7 @@ function finale() {
 function goHome() {
   $('finale').hidden = true; $('play').hidden = true; $('home').hidden = false; page = null;
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-  renderHome();
+  openSpreads(); renderHome();
 }
 
 // -------------------------------------------------------------- wiring ----
@@ -940,8 +940,22 @@ try {   // the link to the other books carries the name along
   $('morePlay').href = u.toString();
 } catch (e) {}
 
+// a page with a "from" date (the Christmas pages) stays hidden until that day on the device's own calendar;
+// ?all in the address shows every page, for checking one before its day
+let ALL = [];
+const SHOW_ALL = (() => { try { return new URLSearchParams(location.search).has('all'); } catch (e) { return false; } })();
+function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function openSpreads(first) {      // true when a page has opened since the last look
+  const day = today(), was = first ? [] : DATA.spreads;
+  DATA.spreads = ALL.filter(s => SHOW_ALL || !s.from || s.from <= day || was.includes(s));   // never shuts an open one
+  return DATA.spreads.length !== was.length;
+}
+document.addEventListener('visibilitychange', () => {    // a tab left open overnight gets the new page too
+  if (!document.hidden && DATA && openSpreads() && !$('home').hidden) renderHome();
+});
+
 fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
-  DATA = d;
+  DATA = d; ALL = d.spreads;
   buildNames();
   const keep = new Set(DATA.spreads.map(s => K(s.n)));      // forget progress on pictures that have changed
   let pruned = false;
@@ -951,6 +965,7 @@ fetch('data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.js
   for (const k of ['plays', 'lv']) for (const q of Object.keys(store[k])) if (!keep.has(q)) { delete store[k][q]; pruned = true; }
   for (const sp of DATA.spreads) if (finished(sp.n) && !store.done[K(sp.n)]) { store.done[K(sp.n)] = 1; pruned = true; }   // stars from before
   if (pruned) persist();
+  openSpreads(true);         // after the tidy-up above, so progress on a page that isn't open yet is kept
   renderHome();
   const m = /^#page(\d+)$/.exec(location.hash);
   if (m && DATA.spreads.some(s => s.n === +m[1])) openPage(+m[1]);

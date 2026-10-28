@@ -22,6 +22,9 @@ Languages: every line the game shows is in lang/en.json and lang/ko.json (none m
 a new device starts in English with no Korean font; the switch turns every screen to Korean and back, is
 remembered after a reload, loads the Korean font only in Korean, picks the right Korean particle after a
 name, and never changes a page's ticks, stars or rounds.
+Dates: a page with a "from" date is hidden before that day on the device's calendar (no card, no #page link,
+not the next page), opens on the day (also in a tab left open), keeps any progress while hidden, and ?all
+shows every page; the other checks run with ?all so they cover the dated pages too.
 --lang ko runs every check above in Korean (the device starts in Korean); the expected text comes from
 the page's own language tables.
 """
@@ -35,6 +38,9 @@ SP = DATA['spreads'][0]
 LANG = sys.argv[sys.argv.index('--lang') + 1] if '--lang' in sys.argv else 'en'
 _page = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
 LANGS = json.loads(re.search(r'const LANGS = (\{.*?\});\n', _page).group(1))
+# every check below opens the site with ?all, so the pages that open on a date (the Christmas pages) are
+# tested now; dates() tests the hiding itself, with the clock set
+HOME = f'http://localhost:{PORT}/?all'
 
 
 def josa(word, a, b):
@@ -91,7 +97,7 @@ async def run(name, viewport, touch):
         page = await ctx.new_page()
         errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
-        await page.goto(f'http://localhost:{PORT}/')
+        await page.goto(HOME)
         await page.wait_for_selector('.page-card')
         assert await page.evaluate('document.documentElement.scrollWidth') <= viewport['width'], 'home scrolls sideways'
         await page.click('.page-card')
@@ -175,10 +181,10 @@ async def rounds(name, viewport, touch):
         errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
         tap = page.touchscreen.tap if touch else page.mouse.click
-        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        await page.goto(HOME); await page.wait_for_selector('.page-card')
         for sp in DATA['spreads']:
             n = sp['n']
-            await page.goto(f'http://localhost:{PORT}/#page{n}'); await page.reload()
+            await page.goto(f'{HOME}#page{n}'); await page.reload()
             await page.wait_for_function("document.getElementById('loading').hidden")
             book = await fam(page)
             assert len(book) == len(sp['finds']), f'page {n}: family not all placed'
@@ -222,7 +228,7 @@ async def reopen(name, viewport, touch):
         errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
         tap = page.touchscreen.tap if touch else page.mouse.click
-        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        await page.goto(HOME); await page.wait_for_selector('.page-card')
         # finish page 1 in the book's places, then go home
         await page.locator('.page-card').first.click(); await page.wait_for_function("document.getElementById('loading').hidden")
         book = await fam(page)
@@ -271,7 +277,7 @@ async def names(name, viewport, touch):
         page = await ctx.new_page()
         errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
-        base = f'http://localhost:{PORT}/'
+        base = HOME
         await page.goto(base); await page.wait_for_selector('.page-card')
         caps = await page.locator('#who figcaption').all_text_contents()
         assert caps == [label(f['id']) for f in DATA['finds']], f'home shows {caps}, not the generic labels'
@@ -326,14 +332,14 @@ async def hard(name, viewport, touch):
         errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
         tap = page.touchscreen.tap if touch else page.mouse.click
-        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        await page.goto(HOME); await page.wait_for_selector('.page-card')
         lv = await page.evaluate("""() => { const n = DATA.spreads[0].n, out = [];
             for (let i = 0; i < 4; i++) { newRound(n); out.push(levelOf(n)); } return out; }""")
         assert lv == [1, 2, 3, 3], f'levels went {lv}'
         for sp in DATA['spreads']:
             n = sp['n']
             await page.evaluate(f"() => {{ store.plays[K({n})] = 2; newRound({n}); persist(); }}")
-            await page.goto(f'http://localhost:{PORT}/#page{n}'); await page.reload()
+            await page.goto(f'{HOME}#page{n}'); await page.reload()
             await page.wait_for_function("document.getElementById('loading').hidden")
             info = await page.evaluate("""() => ({ lv: levelOf(page.n), decoys: page.decoys.length,
                 hidden: page.finds.filter(f => f.prop).length, sit: page.finds.filter(f => /_sit$/.test(f.cut)).length,
@@ -384,10 +390,10 @@ async def costumes(name, viewport, touch):
         errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
         tap = page.touchscreen.tap if touch else page.mouse.click
-        await page.goto(f'http://localhost:{PORT}/'); await page.wait_for_selector('.page-card')
+        await page.goto(HOME); await page.wait_for_selector('.page-card')
         people = ['girl', 'dad', 'mum', 'grandma', 'uncle', 'grandparents']
         plain = next(sp for sp in DATA['spreads'] if not sp.get('co'))
-        await page.goto(f"http://localhost:{PORT}/#page{plain['n']}"); await page.reload()
+        await page.goto(f"{HOME}#page{plain['n']}"); await page.reload()
         await page.wait_for_function("document.getElementById('loading').hidden")
         srcs = await page.evaluate("() => [...document.querySelectorAll('#layer img.fam, #strip img')].map(e => e.getAttribute('src'))")
         for co in DATA.get('costumes', {}):
@@ -401,7 +407,7 @@ async def costumes(name, viewport, touch):
                     await page.evaluate(f"() => {{ delete store.plays[K({n})]; newRound({n}); persist(); }}")
                 if rnd == 'level 3':
                     await page.evaluate(f"() => {{ store.plays[K({n})] = 2; newRound({n}); persist(); }}")
-                await page.goto(f'http://localhost:{PORT}/#page{n}'); await page.reload()
+                await page.goto(f'{HOME}#page{n}'); await page.reload()
                 await page.wait_for_function("document.getElementById('loading').hidden")
                 info = await page.evaluate("""() => ({ finds: page.finds.map(f => [f.id, f.cut]), decoys: page.decoys.map(d => [d.like, d.cut]),
                     faces: [...document.querySelectorAll('#strip .face')].map(e => [e.dataset.id, e.querySelector('img').getAttribute('src')]),
@@ -429,6 +435,78 @@ async def costumes(name, viewport, touch):
         await b.close()
 
 
+async def dates(name, viewport, touch):
+    """Pages that open on a date ("from", the Christmas pages): on the device's own calendar day they are
+    hidden before it (no card, no #page link, not the next page) and there from that day on; a tab left open
+    gets the new page when it is looked at again; ?all shows every page; progress on a page that isn't open
+    yet is kept."""
+    from datetime import datetime, timedelta, timezone
+    dated = sorted((sp for sp in DATA['spreads'] if sp.get('from')), key=lambda sp: sp['from'])
+    if not dated:
+        print(f'{name}: no pages with a date'); return
+    TZ = timezone(timedelta(hours=11))                       # Sydney in summer
+    def at(day, hh=10, mm=0):
+        y, m, d = map(int, day.split('-')); return datetime(y, m, d, hh, mm, tzinfo=TZ)
+    def day_before(day):
+        return (at(day) - timedelta(days=1)).strftime('%Y-%m-%d')
+    def open_on(day):
+        return sorted(sp['n'] for sp in DATA['spreads'] if not sp.get('from') or sp['from'] <= day)
+    base = f'http://localhost:{PORT}/'
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx = await newctx(b, viewport=viewport, has_touch=touch, is_mobile=touch, timezone_id='Australia/Sydney')
+        page = await ctx.new_page()
+        errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        cards = lambda: page.evaluate("() => [...document.querySelectorAll('.page-card .name')].map(e => e.textContent)")
+        first = dated[0]
+        before = day_before(first['from'])
+        await page.clock.set_fixed_time(at(before, 23, 50))
+        await page.goto(base); await page.wait_for_selector('.page-card')
+        want = open_on(before)
+        names = await cards()
+        assert len(names) == len(want), f'{before}: {len(names)} cards, not {len(want)}'
+        assert LANGS[LANG]['pages'][str(first['n'])] not in names, f"{before}: page {first['n']} shows before its day"
+        assert await page.evaluate('DATA.spreads.map(s => s.n)') == want, f'{before}: the wrong pages are open'
+        # a #page link to a page that isn't open yet stays on the home page
+        await page.goto(f"{base}#page{first['n']}"); await page.reload(); await page.wait_for_selector('.page-card')
+        assert await page.is_visible('#home') and not await page.is_visible('#play'), f"#page{first['n']} opened before its day"
+        # the last open page has no next page yet
+        last = want[-1]
+        nxt = await page.evaluate(f"() => {{ const s = DATA.spreads.find(s => s.n > {last}); return s ? s.n : null; }}")
+        assert nxt is None, f'{before}: page {last} has page {nxt} after it'
+        # progress saved on a hidden page (played with ?all) is kept on a device where it isn't open yet
+        key = first['key']
+        await page.evaluate(f"() => {{ const d = JSON.parse(localStorage.getItem('seek-book.v1') || '{{}}'); d.found = d.found || {{}};"
+                            f" d.found['{key}'] = ['{first['finds'][0]['id']}']; localStorage.setItem('seek-book.v1', JSON.stringify(d)); }}")
+        await page.reload(); await page.wait_for_selector('.page-card')
+        kept = await page.evaluate(f"() => (JSON.parse(localStorage.getItem('seek-book.v1')).found || {{}})['{key}']")
+        assert kept, f"progress on page {first['n']} was dropped while it wasn't open"
+        # the tab is left open past midnight: looking at it again shows the new page, without a reload
+        await page.clock.set_fixed_time(at(first['from'], 0, 10))
+        await page.evaluate("document.dispatchEvent(new Event('visibilitychange'))"); await page.wait_for_timeout(200)
+        names = await cards()
+        assert LANGS[LANG]['pages'][str(first['n'])] in names, f"page {first['n']} did not open on {first['from']} in an open tab"
+        # each dated page opens on its own day, and plays
+        for sp in dated:
+            day = sp['from']
+            await page.clock.set_fixed_time(at(day_before(day), 12)); await page.goto(base); await page.reload(); await page.wait_for_selector('.page-card')
+            assert sp['n'] not in await page.evaluate('DATA.spreads.map(s => s.n)'), f"page {sp['n']} open the day before {day}"
+            await page.clock.set_fixed_time(at(day, 7)); await page.reload(); await page.wait_for_selector('.page-card')
+            assert await page.evaluate('DATA.spreads.map(s => s.n)') == open_on(day), f'{day}: the wrong pages are open'
+            await page.goto(f"{base}#page{sp['n']}"); await page.reload()
+            await page.wait_for_function("document.getElementById('loading').hidden")
+            assert await page.evaluate('page && page.n') == sp['n'], f"page {sp['n']} did not open on {day}"
+            print(f"  page {sp['n']} ({LANGS[LANG]['pages'][str(sp['n'])]}): hidden until {day}, then open and playing")
+        # ?all shows every page, whatever the day
+        await page.clock.set_fixed_time(at(before, 12))
+        await page.goto(base + '?all'); await page.reload(); await page.wait_for_selector('.page-card')
+        assert len(await cards()) == len(DATA['spreads']), '?all did not show every page'
+        assert not errs, errs
+        print(f'{name}: date checks passed')
+        await b.close()
+
+
 async def languages(name, viewport, touch):
     """Languages: a new device starts in English without the Korean font; the switch turns the home page, a
     page being played and the finale into Korean and back, is remembered after a reload, adds the Korean font
@@ -441,7 +519,7 @@ async def languages(name, viewport, touch):
         page.on('pageerror', lambda e: errs.append(str(e)))
         await page.route('**/fonts.g*/**', lambda r: r.abort())      # no outside network here
         tap = page.touchscreen.tap if touch else page.mouse.click
-        base = f'http://localhost:{PORT}/'
+        base = HOME
         state = "() => ({ lang: document.documentElement.lang, font: (document.getElementById('koFont') || {}).href || '', btn: document.getElementById('langBtn').textContent, title: document.title, lede: document.querySelector('.lede').textContent, who: [...document.querySelectorAll('#who figcaption')].map(e => e.textContent), cards: [...document.querySelectorAll('.page-card .name')].map(e => e.textContent), count: document.querySelector('.page-card .dots b').textContent, home: document.getElementById('home').innerText })"
         progress = "() => { const d = JSON.parse(localStorage.getItem('seek-book.v1') || '{}'); delete d.lang; return JSON.stringify(d); }"
         N = len(SP['finds'])
@@ -533,6 +611,7 @@ async def main():
         await hard('phone 390 x 760', {'width': 390, 'height': 760}, True)
     if json.load(open(os.path.join(ROOT, 'data.json'))).get('costumes'):
         await costumes('phone 390 x 760', {'width': 390, 'height': 760}, True)
+    await dates('phone 390 x 760', {'width': 390, 'height': 760}, True)
 
 if __name__ == '__main__':
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT],

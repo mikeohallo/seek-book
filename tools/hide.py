@@ -624,13 +624,36 @@ COSTUMES = {'hanbok': [   # people lookalikes in hanbok (sheets decoys_hanbok_a 
     ('dechw_pair_walk', 'grandparents', .98, 'w'),      # grey hair, a tan scarecrow and a black skeleton
     # dechw_uncle_white (an extra the sheet drew: the uncle's costume with a white shirt) is cut but not used:
     # too close to the real one to be fair
+], 'elf': [   # people lookalikes dressed as Christmas elves (sheets decoys_elf_a, _b and _c v1), each the height of
+              # the one it looks like (with the hat)
+    ('dece_girl_orange', 'girl', .76, 'p'),         # the girl's hair, orange collar, belt and shoes
+    ('dece_girl_plait', 'girl', .76, 'p'),          # the girl's lavender and green elf, one long black plait
+    ('dece_dad_red', 'dad', 1.05, 'p'),             # Dad's hair and beard (no grey patch), gold collar, brown belt
+    ('dece_dad_shaven', 'dad', 1.05, 'p'),          # Dad's red and navy elf, no beard
+    ('dece_mum_bun', 'mum', .97, 'p'),              # Mum's bun and green and cream elf, no glasses
+    ('dece_mum_loose', 'mum', .97, 'p'),            # Mum's glasses and elf, long loose hair
+    ('dece_grandma_curly', 'grandma', .97, 'p'),    # grey curls, a red elf dress
+    ('dece_grandma_dark', 'grandma', .97, 'p'),     # Grandma's flowery green elf dress, dark hair
+    ('dece_uncle_nospecs', 'uncle', 1.05, 'p'),     # the uncle's hair and green and light blue elf, no glasses
+    ('dece_uncle_red', 'uncle', 1.05, 'p'),         # the uncle's glasses, a red and yellow elf
+    ('dece_pair_glasses', 'grandparents', .98, 'w'),    # a black bob and glasses, green and red swapped
+    ('dece_pair_walk', 'grandparents', .98, 'w'),       # grey hair, the grandparents' elves
+    # sheet decoys_elf_a drew the bun lookalike as a pair (dece_mum_twins, not used), so decoys_elf_c drew her alone
 ]}
-# Costume cut-outs taller than their everyday twin (a witch's hat, cat ears and a tail): the same body is
+# Costume cut-outs taller than their everyday twin (a witch's hat, cat ears and a tail, elf hats): the same body is
 # drawn at the same scale on the sheet (face widths match), so the height share grows by the cut-out's
 # height ratio and she stays her usual size under the hat. Every other costume is within 0.5% of its twin.
 COSTUME_TALL = {'girl_halloween_stand': 1.072, 'girl_halloween_sit': 1.127, 'girl_halloween_walk': 1.084,
                 'girl_halloween_peek': 1.275, 'mum_halloween_stand': 1.023, 'mum_halloween_sit': 1.068,
-                'mum_halloween_walk': 1.068, 'mum_halloween_peek': 1.034}
+                'mum_halloween_walk': 1.068, 'mum_halloween_peek': 1.034,
+                # elf hats (28 Oct 2026; eye spacing matches the everyday sheets within 0.6%, so the same scale)
+                'girl_elf_stand': 1.033, 'girl_elf_sit': 1.067, 'girl_elf_walk': 1.037, 'girl_elf_peek': 1.163,
+                'dad_elf_stand': 1.051, 'dad_elf_sit': 1.086, 'dad_elf_walk': 1.036, 'dad_elf_peek': 1.105,
+                'mum_elf_stand': 1.009, 'mum_elf_sit': 1.020, 'mum_elf_walk': 1.042,
+                'grandma_elf_stand': 1.042, 'grandma_elf_sit': 1.104, 'grandma_elf_walk': 1.040, 'grandma_elf_peek': 1.087,
+                'uncle_elf_stand': 1.048, 'uncle_elf_sit': 1.072, 'uncle_elf_walk': 1.011, 'uncle_elf_peek': 1.045,
+                'grandparents_elf_stand': 1.019, 'grandparents_elf_sit': 1.055, 'grandparents_elf_walk': 1.029,
+                'grandparents_elf_peek': 1.089}
 for _co in COSTUMES:
     WEB_SIZE.update({costume_cut(c, _co): round(v * COSTUME_TALL.get(costume_cut(c, _co), 1), 3)
                      for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
@@ -649,6 +672,14 @@ PAGE_PROPS.update({30: ['prop_bush', 'prop_plant', 'prop_boxes'],         # the 
                    31: ['prop_crate', 'prop_boxes'],                      # the ice-fishing festival: nothing green on the ice
                    32: ['prop_boxes', 'prop_crate']})                     # school sports day: kit boxes on a dirt field
 PAGE_PROPS.update({33: ['prop_pine', 'prop_bush']})                       # the royal tomb park: pines and bushes on the lawns
+# Christmas props (sheet props_christmas, 28 Oct 2026): a heap of presents, a snowman (no hat), a sled of presents, one big
+# present. The sheet's little tree in a pot and sack of presents (prop_xtree, prop_xsack) are cut but not used: they are
+# too narrow to hide a grown-up, and the site tries only the least-used prop for a hiding find, so with the tree a round
+# had fewer than two hiding about one time in five (with the sack, one in twenty-five; without either, one in sixty)
+PROPS.update({'prop_xheap': (.48, False, True, False), 'prop_snowman': (.58, False, False, False),
+              'prop_sled': (.40, False, True, False), 'prop_xbox': (.42, True, False, False)})
+PAGE_PROPS.update({38: ['prop_xheap', 'prop_xbox', 'prop_sled'],    # the toy factory: a heap, a big present, a sled of presents
+                   40: ['prop_snowman', 'prop_sled', 'prop_xbox']})  # the North Pole
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
@@ -937,7 +968,8 @@ def cmd_web(args):
                                 'thumb': f"thumbs/s{n:02d}.webp?v={file_ver(os.path.join(out, 'thumbs', f's{n:02d}.webp'))}",
                                 'w': wpx, 'h': hpx, 'A': adult_h(sd), 'finds': boxes, 'book': book_places, 'slots': web_slots,
                                 **({'pr': PAGE_PROPS.get(n, [])} if have_hard else {}),
-                                **({'co': sd['co']} if sd.get('co') else {})})
+                                **({'co': sd['co']} if sd.get('co') else {}),
+                                **({'from': sd['from']} if sd.get('from') else {})})
         kb = os.path.getsize(os.path.join(out, 'scenes', f's{n:02d}.webp')) // 1024
         print(f'spread {n}: {sd["title"]}, {len(boxes)} finds, {len(slots)} spots for new rounds, {wpx} x {hpx} px, {kb} KB')
     with open(os.path.join(out, 'data.json'), 'w', encoding='utf-8') as fh:
