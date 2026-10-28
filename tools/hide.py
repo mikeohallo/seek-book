@@ -737,6 +737,10 @@ PAGE_PROPS.update({35: ['prop_snowman', 'prop_xheap', 'prop_xbox'],  # the ginge
 PROPS.update({'prop_esky': (.44, True, False, False), 'prop_tent': (.56, False, True, False),
               'prop_bags': (.46, False, True, False), 'prop_sandcastle': (.50, False, True, False)})
 PAGE_PROPS.update({41: ['prop_tent', 'prop_bags', 'prop_sandcastle', 'prop_esky']})   # Christmas Day at the beach
+PAGE_PROPS.update({34: ['prop_xheap', 'prop_xbox', 'prop_bush'],     # the lights street (29 Oct 2026): presents and hedges on the lawns
+                   37: ['prop_esky', 'prop_bags', 'prop_bush'],      # Carols by Candlelight: picnic things on the lawn
+                   39: ['prop_xheap', 'prop_xbox', 'prop_crate'],    # the parade: presents and stall crates on the paving
+                   42: ['prop_esky', 'prop_bags', 'prop_bush']})     # Boxing Day on the harbour: picnic things on the headland
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
