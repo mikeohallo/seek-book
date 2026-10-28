@@ -639,6 +639,21 @@ COSTUMES = {'hanbok': [   # people lookalikes in hanbok (sheets decoys_hanbok_a 
     ('dece_pair_glasses', 'grandparents', .98, 'w'),    # a black bob and glasses, green and red swapped
     ('dece_pair_walk', 'grandparents', .98, 'w'),       # grey hair, the grandparents' elves
     # sheet decoys_elf_a drew the bun lookalike as a pair (dece_mum_twins, not used), so decoys_elf_c drew her alone
+], 'winter': [   # people lookalikes in winter coats (sheets decoys_winter_a and _b v1, 28 Oct 2026), each the height of
+                 # the one it looks like (with the beanie)
+    ('decw_girl_orange', 'girl', .78, 'p'),         # the girl's hair and lavender jacket, an orange beanie and scarf
+    ('decw_girl_plait', 'girl', .78, 'p'),          # the girl's lavender jacket and pink beanie, one long black plait
+    ('decw_dad_red', 'dad', 1.04, 'p'),             # Dad's hair and beard (no grey patch), navy jacket, a red beanie
+    ('decw_dad_shaven', 'dad', 1.04, 'p'),          # Dad's navy jacket and grey beanie, no beard
+    ('decw_mum_bun', 'mum', .98, 'p'),              # Mum's cream jacket and black beanie, no glasses
+    ('decw_mum_loose', 'mum', .98, 'p'),            # Mum's glasses and cream jacket, long loose hair
+    ('decw_grandma_curly', 'grandma', .98, 'p'),    # grey curls, Grandma's green coat and red beanie
+    ('decw_grandma_dark', 'grandma', .98, 'p'),     # Grandma's green coat with the flowery hem, dark hair
+    ('decw_uncle_nospecs', 'uncle', 1.02, 'p'),     # the uncle's hair and grey jacket, no glasses
+    ('decw_uncle_red', 'uncle', 1.02, 'p'),         # the uncle's glasses, a red jacket and yellow beanie
+    ('decw_pair_glasses', 'grandparents', 1.01, 'w'),   # a black bob and glasses, a red coat and a green jacket
+    ('decw_pair_walk', 'grandparents', 1.01, 'w'),      # grey hair, the grandparents' colours
+    # decw_grandpa_extra (a seventh figure sheet b drew: a grandfather on his own) is cut but not used
 ]}
 # Costume cut-outs taller than their everyday twin (a witch's hat, cat ears and a tail, elf hats): the same body is
 # drawn at the same scale on the sheet (face widths match), so the height share grows by the cut-out's
@@ -653,7 +668,17 @@ COSTUME_TALL = {'girl_halloween_stand': 1.072, 'girl_halloween_sit': 1.127, 'gir
                 'grandma_elf_stand': 1.042, 'grandma_elf_sit': 1.104, 'grandma_elf_walk': 1.040, 'grandma_elf_peek': 1.087,
                 'uncle_elf_stand': 1.048, 'uncle_elf_sit': 1.072, 'uncle_elf_walk': 1.011, 'uncle_elf_peek': 1.045,
                 'grandparents_elf_stand': 1.019, 'grandparents_elf_sit': 1.055, 'grandparents_elf_walk': 1.029,
-                'grandparents_elf_peek': 1.089}
+                'grandparents_elf_peek': 1.089,
+                # beanies (28 Oct 2026; eye spacing and eye size match the everyday sheets within 0.2%, so the same scale;
+                # Mum's beanie sits where her bun was, so her cut-outs are barely taller)
+                'girl_winter_stand': 1.058, 'girl_winter_sit': 1.076, 'girl_winter_walk': 1.047, 'girl_winter_peek': 1.267,
+                'dad_winter_stand': 1.040, 'dad_winter_sit': 1.049, 'dad_winter_walk': 1.020, 'dad_winter_peek': 1.144,
+                'mum_winter_stand': 1.018, 'mum_winter_sit': 1.017,
+                'grandma_winter_stand': 1.055, 'grandma_winter_sit': 1.067, 'grandma_winter_walk': 1.031,
+                'grandma_winter_peek': 1.097,
+                'uncle_winter_stand': 1.024, 'uncle_winter_sit': 1.074, 'uncle_winter_peek': 1.090,
+                'grandparents_winter_stand': 1.057, 'grandparents_winter_sit': 1.076, 'grandparents_winter_walk': 1.050,
+                'grandparents_winter_peek': 1.144}
 for _co in COSTUMES:
     WEB_SIZE.update({costume_cut(c, _co): round(v * COSTUME_TALL.get(costume_cut(c, _co), 1), 3)
                      for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
@@ -680,6 +705,8 @@ PROPS.update({'prop_xheap': (.48, False, True, False), 'prop_snowman': (.58, Fal
               'prop_sled': (.40, False, True, False), 'prop_xbox': (.42, True, False, False)})
 PAGE_PROPS.update({38: ['prop_xheap', 'prop_xbox', 'prop_sled'],    # the toy factory: a heap, a big present, a sled of presents
                    40: ['prop_snowman', 'prop_sled', 'prop_xbox']})  # the North Pole
+PAGE_PROPS.update({35: ['prop_snowman', 'prop_xheap', 'prop_xbox'],  # the gingerbread village (28 Oct 2026): snowmen and presents
+                   36: ['prop_snowman', 'prop_crate', 'prop_boxes']}) # the snow festival: snowmen, crates and boxes by the stalls
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
