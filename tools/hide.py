@@ -654,6 +654,21 @@ COSTUMES = {'hanbok': [   # people lookalikes in hanbok (sheets decoys_hanbok_a 
     ('decw_pair_glasses', 'grandparents', 1.01, 'w'),   # a black bob and glasses, a red coat and a green jacket
     ('decw_pair_walk', 'grandparents', 1.01, 'w'),      # grey hair, the grandparents' colours
     # decw_grandpa_extra (a seventh figure sheet b drew: a grandfather on his own) is cut but not used
+], 'beach': [   # people lookalikes in rash vests, board shorts and Santa hats (sheets decoys_beach_a and _b v1, 29 Oct 2026),
+                # each the height of the one it looks like (with the hat)
+    ('decbh_girl_orange', 'girl', .78, 'p'),        # the girl's hair and lavender rash vest, orange board shorts
+    ('decbh_girl_plait', 'girl', .78, 'p'),         # the girl's lavender and navy, one long black plait
+    ('decbh_dad_red', 'dad', 1.04, 'p'),            # Dad's hair and beard (no grey patch), navy vest, red board shorts
+    ('decbh_dad_shaven', 'dad', 1.04, 'p'),         # Dad's navy vest and grey shorts, no beard
+    ('decbh_mum_bun', 'mum', .98, 'p'),             # Mum's bun and cream vest, no glasses
+    ('decbh_mum_loose', 'mum', .98, 'p'),           # Mum's glasses and cream vest, long loose hair
+    ('decbh_grandma_curly', 'grandma', .97, 'p'),   # grey curls, a plain dark green vest
+    ('decbh_grandma_dark', 'grandma', .97, 'p'),    # Grandma's flowery green vest, dark hair
+    ('decbh_uncle_nospecs', 'uncle', 1.03, 'p'),    # the uncle's hair and light blue vest, no glasses
+    ('decbh_uncle_yellow', 'uncle', 1.03, 'p'),     # the uncle's glasses, a yellow vest
+    ('decbh_pair_red', 'grandparents', 1.0, 'w'),       # a black bob and glasses, a red vest and a navy one
+    ('decbh_pair_walk', 'grandparents', 1.0, 'w'),      # grey hair, the grandparents' colours
+    # decbh_pair_green (the sheet's sixth: a black bob and glasses in red, with a green jacket) is cut but not used
 ]}
 # Costume cut-outs taller than their everyday twin (a witch's hat, cat ears and a tail, elf hats): the same body is
 # drawn at the same scale on the sheet (face widths match), so the height share grows by the cut-out's
@@ -678,7 +693,16 @@ COSTUME_TALL = {'girl_halloween_stand': 1.072, 'girl_halloween_sit': 1.127, 'gir
                 'grandma_winter_peek': 1.097,
                 'uncle_winter_stand': 1.024, 'uncle_winter_sit': 1.074, 'uncle_winter_peek': 1.090,
                 'grandparents_winter_stand': 1.057, 'grandparents_winter_sit': 1.076, 'grandparents_winter_walk': 1.050,
-                'grandparents_winter_peek': 1.144}
+                'grandparents_winter_peek': 1.144,
+                # Santa hats (29 Oct 2026; eye spacing matches the everyday sheets within 1.1%, so the same scale)
+                'girl_beach_stand': 1.049, 'girl_beach_sit': 1.034, 'girl_beach_walk': 1.016, 'girl_beach_peek': 1.107,
+                'dad_beach_stand': 1.016, 'dad_beach_sit': 1.032, 'dad_beach_peek': 1.030,
+                'mum_beach_stand': 1.031, 'mum_beach_walk': 1.045, 'mum_beach_peek': 1.035,
+                'grandma_beach_stand': 1.035, 'grandma_beach_sit': 1.034, 'grandma_beach_walk': 1.035,
+                'grandma_beach_peek': 1.122,
+                'uncle_beach_stand': 1.027, 'uncle_beach_sit': 1.029, 'uncle_beach_peek': 1.052,
+                'grandparents_beach_stand': 1.027, 'grandparents_beach_sit': 1.028, 'grandparents_beach_walk': 1.024,
+                'grandparents_beach_peek': 1.050}
 for _co in COSTUMES:
     WEB_SIZE.update({costume_cut(c, _co): round(v * COSTUME_TALL.get(costume_cut(c, _co), 1), 3)
                      for c, v in list(WEB_SIZE.items()) if c.rpartition('_')[0] in PEOPLE_IDS})
@@ -707,6 +731,12 @@ PAGE_PROPS.update({38: ['prop_xheap', 'prop_xbox', 'prop_sled'],    # the toy fa
                    40: ['prop_snowman', 'prop_sled', 'prop_xbox']})  # the North Pole
 PAGE_PROPS.update({35: ['prop_snowman', 'prop_xheap', 'prop_xbox'],  # the gingerbread village (28 Oct 2026): snowmen and presents
                    36: ['prop_snowman', 'prop_crate', 'prop_boxes']}) # the snow festival: snowmen, crates and boxes by the stalls
+# beach props (sheet props_beach, 29 Oct 2026): an esky, a beach tent, a heap of bags and towels, a sandcastle. The kiosk
+# counter (too long and low to hide behind on sand) and the pool ring (its middle is open, so a face would show through)
+# are cut but not used.
+PROPS.update({'prop_esky': (.44, True, False, False), 'prop_tent': (.56, False, True, False),
+              'prop_bags': (.46, False, True, False), 'prop_sandcastle': (.50, False, True, False)})
+PAGE_PROPS.update({41: ['prop_tent', 'prop_bags', 'prop_sandcastle', 'prop_esky']})   # Christmas Day at the beach
 
 def adult_h(sd):
     return next(p['h'] for p in sd['places'] if p.get('find') == 'dad')
