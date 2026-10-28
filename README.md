@@ -1,10 +1,12 @@
 # Seek and Find
 
-A seek-and-find game I made for my daughter, starring her own family as cartoons. Every busy picture hides the same nine: a girl, Dad, Mum, Grandma, an uncle, the grandparents, a pair of ballet shoes, a sleepy doll and the unicorn from the Monster Book. Tap everyone you can find.
+**For** a child who already does serious seek-and-find books, and her family, who are the ones hiding. **It does** 37 busy pages, in English and Korean, each hiding the same nine: a girl, Dad, Mum, Grandma, an uncle, the grandparents, a pair of ballet shoes, a sleepy doll and the unicorn from the [Monster Book](https://github.com/mikeohallo/monster-book). About a hundred people on the first page, over 250 on the busiest, the family the same size as everyone else. Find them, get a clue when stuck, then "Hide everyone again" for a new round on the same page, with lookalikes from the third round. Four of the pages are for Christmas and open on their own days in December.
 
-**Try it:** [seek.mikeohalloran.au](https://seek.mikeohalloran.au/), or start at [the playroom](https://play.mikeohalloran.au/), the front door to all three labs: Monster Lab, Learning Lab and Seek Lab (this one).
+**Try it:** [seek.mikeohalloran.au](https://seek.mikeohalloran.au/) on a phone. Pinch to zoom, tap to find. Or start at [the playroom](https://play.mikeohalloran.au/), the front door to all three labs: Monster Lab, Learning Lab and Seek Lab (this one). The public game uses generic labels (Girl, Dad, Mum); the family's own names never leave their devices.
 
-Built with [Claude](https://claude.ai). It was planned as a printed book; the website is what it became. It's the sister project of [monster-book](https://github.com/mikeohallo/monster-book).
+**What's measured:** the answer key can't be wrong, by construction: AI paints each scene empty, and code places the family from one data file that also builds the printed book and its answers pages. Over 1,400 hiding spots, about 40 a page, were each checked by eye with a stand-in in place. A build fails if either language file is missing a line. "Things that turned out to matter" below is the real record: what went wrong, from the image model to the size of a fingertip, and what fixed each.
+
+**Where the AI is:** painting crowds, not hiding people. Asked to hide the girl once, the first test drew her five times and invented a second grandma, so the model never sees the family: it paints the place, and code does the hiding. Two people decide what's good enough: the parent who checks every spot, and the child who plays it. Built with [Claude](https://claude.ai); it was planned as a printed book, and the website is what it became.
 
 ![The home page, a page being played, and everyone found with Hide everyone again](docs/screenshot.png)
 
