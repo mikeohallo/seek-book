@@ -10,7 +10,7 @@ image model, from the prompts in prompts.json.
     py gen.py scene 1 --count 2     two versions to choose from
 
 Options:
-    --model gemini-3-pro-image      image model (default; gemini-nano-banana-2.1 is cheaper)
+    --model gemini-nano-banana-2.1  image model (default; gemini-3-pro-image only after a side-by-side)
     --size 4K                       1K, 2K or 4K (default 4K)
     --count 1                       how many versions to make of each
 
@@ -149,7 +149,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('command', choices=['check', 'prompts', 'sheets', 'scene'])
     ap.add_argument('targets', nargs='*')
-    ap.add_argument('--model', default='gemini-3-pro-image')
+    ap.add_argument('--model', default='gemini-nano-banana-2.1')
     ap.add_argument('--size', default='4K', choices=['1K', '2K', '4K'])
     ap.add_argument('--count', type=int, default=1)
     a = ap.parse_args()
