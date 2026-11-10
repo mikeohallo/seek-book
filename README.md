@@ -90,6 +90,8 @@ The site itself follows the monster site: **one HTML file plus pictures.** No fr
 
 The pictures aren't in the repo; they're the book. Nor are `scenes.json` (where every hiding place lives, so it would give the answers away, and where the family's own names are kept) and the `website/` output folder, so `hide.py` and `make_site.py` won't run from a clean clone; `index.html` is the built result and is complete. The tools, prompts and tests are all here.
 
+On every push, GitHub runs a short check (`.github/workflows/ci.yml`) on what a clean clone does hold: the tools compile and pass a lint for errors, the JSON files read, both languages have every line with the same slots, and `make_site.py --page-only` rebuilds `index.html` byte for byte from `tools/site_src.html` and the language files. The full browser tests need the pictures, so they run on the local build before each deploy.
+
 ## Running it locally
 
 The page needs to be served, not opened from a file:

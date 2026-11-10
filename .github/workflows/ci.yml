@@ -1,0 +1,46 @@
+# Checks what the repo holds: the tools, the language files and the page they build.
+# The game's full browser tests need the pictures, which never go in this repo, so they run on the
+# laptop's build before every deploy. This workflow has no secrets and never deploys.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install
+        run: python -m pip install --quiet ruff==0.16.9 pillow==12.3.0
+
+      - name: Python compiles
+        run: python -m py_compile tools/*.py
+
+      - name: Lint (errors only)
+        run: ruff check --select E9,F63,F7,F82 tools/
+
+      - name: JSON files read
+        run: |
+          for f in tools/prompts.json tools/lang/*.json; do
+            python -c "import json, sys; json.load(open(sys.argv[1], encoding='utf-8'))" "$f"
+          done
+
+      - name: The page builds, and matches the committed index.html
+        # make_site.py --page-only also checks both languages have every line, with the same slots
+        run: |
+          python tools/make_site.py --page-only "$RUNNER_TEMP/page"
+          cmp "$RUNNER_TEMP/page/index.html" index.html || {
+            echo "index.html is not what tools/site_src.html and tools/lang build: run make_site.py and commit the page."
+            exit 1
+          }

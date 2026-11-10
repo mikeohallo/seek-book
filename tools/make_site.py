@@ -2,15 +2,21 @@
 hosted index.html in website/upload, and zip the folder for Cloudflare Pages.
 
     python3 make_site.py            -> website/upload/index.html, website/upload/share.jpg, website/seek_upload.zip
+    python3 make_site.py --page-only OUT
+                                    -> OUT/index.html only, from site_src.html and lang/ alone (no pictures or
+                                       data.json needed; page titles and finds come from lang/en.json). CI uses it
+                                       to check the committed index.html is what the sources build.
 
 The preview page is a fragment (Claude's viewer adds the document head). The hosted page needs its own:
 doctype, charset, the phone viewport, a share preview, and the same small reset the viewer adds.
 The plain link says "My Seek and Find"; ?for=Name names it on that device (DEFAULT_OWNER empty).
 """
-import os, re, zipfile
+import os, re, sys, zipfile
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+PAGE_ONLY = sys.argv[sys.argv.index('--page-only') + 1] if '--page-only' in sys.argv else None
+if PAGE_ONLY: PAGE_ONLY = os.path.abspath(PAGE_ONLY)
 os.chdir(HERE)
 UP = os.path.join('website', 'upload')
 SITE = 'https://seek.mikeohalloran.au/'
@@ -28,7 +34,12 @@ assert "const DEFAULT_OWNER = '';" in body, 'the hosted page must not name anyon
 import json, urllib.parse
 from check_lang import check_langs
 LANGS = {code: json.load(open(os.path.join('lang', code + '.json'), encoding='utf-8')) for code in ('en', 'ko')}
-problems = check_langs(LANGS, json.load(open(os.path.join(UP, 'data.json'), encoding='utf-8')))
+if PAGE_ONLY:   # no data.json: check the languages against the pages and finds English names
+    _data = {'spreads': [{'n': int(k), 'title': v} for k, v in LANGS['en']['pages'].items()],
+             'finds': [{'id': k} for k in LANGS['en']['finds']]}
+else:
+    _data = json.load(open(os.path.join(UP, 'data.json'), encoding='utf-8'))
+problems = check_langs(LANGS, _data)
 assert not problems, 'lang files: ' + '; '.join(problems)
 for v in LANGS.values(): v.pop('_about', None)
 # the Korean font, cut down to just the letters the Korean text uses (Google Fonts' text= option)
@@ -68,6 +79,11 @@ page = f'''<!doctype html>
 </body>
 </html>
 '''
+if PAGE_ONLY:
+    os.makedirs(PAGE_ONLY, exist_ok=True)
+    open(os.path.join(PAGE_ONLY, 'index.html'), 'w', encoding='utf-8').write(page)
+    print(f'{PAGE_ONLY}/index.html written (page only)')
+    sys.exit(0)
 open(os.path.join(UP, 'index.html'), 'w', encoding='utf-8').write(page)
 
 # share picture: the first page's scene, cropped to 1200 x 630
